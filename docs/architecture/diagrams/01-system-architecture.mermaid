@@ -1,0 +1,69 @@
+---
+title: "CX System Architecture"
+---
+graph TB
+    subgraph DEV["👤 Developer"]
+        direction LR
+        D1["Talks to Agent"]
+        D2["cx dashboard (TUI)"]
+    end
+
+    subgraph AGENTS["🤖 Coding Agents"]
+        direction LR
+        Claude[".claude/"]
+        Gemini[".gemini/"]
+        Codex[".codex/"]
+    end
+
+    subgraph CX["⚙️ CX Binary"]
+        direction TB
+        Init["cx init"]
+        Sync["cx sync"]
+        Upgrade["cx upgrade"]
+        Change["cx change"]
+        Memory["cx memory"]
+        Search["cx search"]
+        Context["cx context"]
+        Conflicts["cx conflicts"]
+        Doctor["cx doctor"]
+        Dashboard["cx dashboard"]
+    end
+
+    subgraph DOCS["📁 docs/ — Source of Truth"]
+        direction TB
+        Overview["overview.md"]
+        Arch["architecture/"]
+        Specs["specs/"]
+        Changes["changes/"]
+        Archive["archive/"]
+    end
+
+    subgraph MEM["🧠 Memory Layer"]
+        direction LR
+        LocalDB["~/.cx/memory.db\n(personal notes)"]
+        ProjectMem["docs/memories/\n(observations, decisions, sessions)"]
+        IndexCache[".cx/.index.db\n(FTS5 cache)"]
+    end
+
+    subgraph EXT["🔗 External"]
+        MCP["MCP Servers\n(Linear, etc.)"]
+        Git["Git History"]
+    end
+
+    DEV -->|"natural language"| AGENTS
+    DEV -->|"direct access"| Dashboard
+    AGENTS -->|"read skills\ncall cx commands"| CX
+    AGENTS -->|"MCP protocol"| MCP
+    CX -->|"read/write"| DOCS
+    CX -->|"read/write"| MEM
+    CX -->|"generate configs"| AGENTS
+    ProjectMem -->|"committed to"| Git
+    DOCS -->|"committed to"| Git
+    IndexCache -->|"rebuilt from"| ProjectMem
+
+    style DEV fill:#f0f4ff,stroke:#4a6fa5,stroke-width:2px
+    style AGENTS fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style CX fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style DOCS fill:#fce4ec,stroke:#c62828,stroke-width:2px
+    style MEM fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style EXT fill:#e0e0e0,stroke:#616161,stroke-width:2px

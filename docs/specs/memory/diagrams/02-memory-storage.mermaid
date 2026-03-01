@@ -1,0 +1,52 @@
+---
+title: "Memory Storage Architecture"
+---
+graph TB
+    subgraph GIT["Committed to Git — Team Knowledge"]
+        direction TB
+        
+        subgraph OBS["docs/memories/observations/"]
+            O1["2026-02-20-angel-n1-query-fix.md\ntype: bugfix"]
+            O2["2026-02-21-carlos-mqtt-retry.md\ntype: discovery"]
+            O3["2026-02-22-angel-ble-smp-config.md\ntype: discovery"]
+        end
+
+        subgraph DEC["docs/memories/decisions/"]
+            D1["2026-02-15-angel-timescaledb.md\nstatus: active"]
+            D2["2026-02-22-angel-ble-just-works.md\nstatus: active"]
+        end
+
+        subgraph SESS["docs/memories/sessions/"]
+            S1["2026-02-20-angel.md"]
+            S2["2026-02-22-carlos.md"]
+            S3["2026-02-22-angel.md"]
+        end
+    end
+    
+    subgraph LOCAL["Gitignored — Local Only"]
+        IDX[".cx/.index.db\n(FTS5 cache)\nRebuilt from files"]
+    end
+    
+    subgraph PERSONAL["~/.cx/ — Personal, Never Shared"]
+        PDB["memory.db\n(SQLite + FTS5)\n\npersonal_notes:\n- patterns\n- preferences\n- tool tips\n- reminders"]
+    end
+    
+    OBS -->|"parsed into"| IDX
+    DEC -->|"parsed into"| IDX
+    SESS -->|"parsed into"| IDX
+    
+    subgraph QUERY["cx context (via primer subagent)"]
+        Q1["1. Latest session → next_steps"]
+        Q2["2. Active decisions → outcomes"]
+        Q3["3. Recent observations → summaries"]
+        Q4["4. Personal notes → relevant tips"]
+    end
+    
+    IDX -->|"project search"| QUERY
+    PDB -->|"local search"| QUERY
+    QUERY -->|"~500 tokens"| AGENT["🤖 Agent gets\ncomposed context"]
+    
+    style GIT fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style LOCAL fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style PERSONAL fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style QUERY fill:#e3f2fd,stroke:#1565c0,stroke-width:2px

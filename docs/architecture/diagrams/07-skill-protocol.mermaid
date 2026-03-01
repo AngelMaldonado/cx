@@ -1,0 +1,84 @@
+---
+title: "Skills — The Agent ↔ Binary Protocol"
+---
+sequenceDiagram
+    participant Dev as 👤 Developer
+    participant Agent as 🤖 Coding Agent
+    participant Skill as 📜 Skill File
+    participant CX as ⚙️ cx binary
+    participant Docs as 📁 docs/
+    participant Mem as 🧠 docs/memories/
+    participant MCP as 🔌 Linear MCP
+
+    Note over Dev,Mem: Session Start
+
+    Dev->>Agent: "Let's work on the gas alerting feature"
+
+    Agent->>Agent: Spawns primer subagent
+    Agent->>Skill: Primer reads cx-prime.md skill
+    Skill-->>Agent: "Classify mode, call cx context --mode, distill"
+    Agent->>CX: cx context --mode build
+    CX->>Docs: Reads specs, memories, changes
+    Docs-->>CX: Context map
+    CX-->>Agent: Structured map of available context
+    Agent->>CX: cx context --load spec gas-monitoring
+    CX-->>Agent: Full spec content
+    Agent-->>Agent: Primer returns ~600 tokens of distilled context
+
+    Agent->>Skill: Reads cx-change.md skill
+    Skill-->>Agent: "To start work, run cx change status"
+    Agent->>CX: cx change status
+    CX->>Docs: Scan docs/changes/
+    Docs-->>CX: Active changes list
+    CX-->>Agent: "No existing change for gas alerting"
+
+    Note over Dev,Mem: Brainstorm Phase
+
+    Agent->>Skill: Reads cx-brainstorm.md skill
+    Skill-->>Agent: "For new features, run cx brainstorm"
+    Agent->>CX: cx brainstorm
+    CX->>Docs: Creates masterfile.md template
+    CX-->>Agent: Template path + instructions
+    Agent->>Docs: Fills masterfile.md with structured intent
+
+    Dev->>Agent: "Also consider the firmware side"
+    Agent->>Skill: Reads cx-refine.md skill
+    Skill-->>Agent: "Edit masterfile directly, no binary command"
+    Agent->>Docs: Edits masterfile.md with new firmware considerations
+
+    Dev->>Agent: "Looks good, let's go"
+
+    Note over Dev,Mem: Decompose Phase
+
+    Agent->>Skill: Reads cx-decompose.md skill
+    Agent->>CX: cx decompose
+    CX->>Docs: Reads masterfile.md
+    CX->>Docs: Creates docs/changes/fix-gas-alerts/<br/>  proposal.md (template)<br/>  design.md (template)<br/>  tasks.md (template)<br/>  specs/gas-monitoring/delta.md
+    CX->>Docs: Archives masterfile → docs/archive/
+    CX-->>Agent: "Change created. Fill templates."
+    Agent->>Docs: Reads docs/specs/gas-monitoring/spec.md
+    Agent->>Docs: Fills proposal.md, design.md, tasks.md
+    Agent->>Skill: Reads cx-linear.md skill
+    Skill-->>Agent: "Create Linear issues via MCP, write refs to tasks.md"
+    Agent->>MCP: Create issues: CUB-140, CUB-141, CUB-142
+    MCP-->>Agent: Issues created
+    Agent->>Docs: Writes Linear refs to tasks.md
+
+    Note over Dev,Mem: Implementation Phase
+
+    Agent->>Docs: Reads tasks.md
+    Agent->>Agent: Writes code for task 1
+    Agent->>CX: cx memory save --title "Gas threshold uses INT not FLOAT in firmware"
+    CX->>Mem: Writes observation .md file
+
+    Agent->>Agent: Writes code for task 2, 3
+    Agent->>MCP: Updates Linear issue status via MCP
+
+    Note over Dev,Mem: Archive Phase
+
+    Agent->>CX: cx change archive fix-gas-alerts
+    CX->>Docs: Validates all tasks complete
+    CX->>Docs: Merges delta.md → specs/gas-monitoring/spec.md
+    CX->>Docs: Moves change → docs/archive/
+    CX->>Mem: Writes completion summary .md
+    CX-->>Agent: "✅ Archived. Specs updated."

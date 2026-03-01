@@ -1,0 +1,37 @@
+---
+title: "Complete Feature Lifecycle"
+---
+flowchart TD
+    START(("🧑 Developer\nhas an idea")) --> TALK["Talks to coding agent:\n'I want to add BLE pairing\nto our device'"]
+
+    TALK --> BRAIN["🤖 Agent triggers skill: cx-brainstorm\n────────────────────────\nAgent runs: cx brainstorm\nBinary creates: masterfile.md template\nAgent fills it with structured intent"]
+
+    BRAIN --> REFINE{"Developer\nreviews\nmasterfile?"}
+    REFINE -->|"needs changes"| OBS["🤖 Agent uses skill: cx-refine\n────────────────────────\nSkill-guided refinement (no binary command)\nAgent edits masterfile.md directly\nAgent refines content with developer"]
+    OBS --> REFINE
+    REFINE -->|"approved ✅"| DECOMPOSE["🤖 Agent triggers skill: cx-decompose\n────────────────────────\nAgent runs: cx decompose\nBinary creates full docs/ structure:\n  docs/changes/add-ble-pairing/\n    proposal.md (template)\n    design.md (template)\n    tasks.md (template)\n    specs/device-communication/delta.md"]
+
+    DECOMPOSE --> FILL["🤖 Agent fills templates\n────────────────────────\nReads docs/specs/ for current state\nWrites proposal.md with intent\nWrites design.md with approach\nWrites tasks.md with checklist"]
+
+    FILL --> LINEAR["🤖 Agent uses Linear MCP\n────────────────────────\nAgent creates Linear issues via MCP\nAgent writes refs to tasks.md:\n  CUB-140, CUB-141, CUB-142"]
+
+    LINEAR --> IMPLEMENT["🤖 Agent implements\n────────────────────────\nReads tasks.md for refs\nWrites code\nUpdates Linear via MCP\nPeriodically: cx memory save"]
+
+    IMPLEMENT --> DONE{"All tasks\ncomplete?"}
+    DONE -->|"no"| IMPLEMENT
+    DONE -->|"yes ✅"| ARCHIVE["🤖 Agent triggers skill: cx-archive\n────────────────────────\nAgent checks Linear via MCP: all issues done?\nAgent runs: cx change archive add-ble-pairing\nBinary validates completeness\nBinary merges delta → docs/specs/\nBinary moves to docs/archive/\nBinary saves summary to memory"]
+
+    ARCHIVE --> FINISH(("✅ Feature complete\nSpecs updated\nMemory saved\nLinear closed"))
+
+    style START fill:#4a6fa5,color:#fff
+    style FINISH fill:#2e7d32,color:#fff
+    style BRAIN fill:#fff3e0,stroke:#e65100
+    style OBS fill:#fff3e0,stroke:#e65100
+    style DECOMPOSE fill:#fff3e0,stroke:#e65100
+    style FILL fill:#fff3e0,stroke:#e65100
+    style LINEAR fill:#fff3e0,stroke:#e65100
+    style IMPLEMENT fill:#fff3e0,stroke:#e65100
+    style ARCHIVE fill:#fff3e0,stroke:#e65100
+    style TALK fill:#e3f2fd,stroke:#1565c0
+    style REFINE fill:#f3e5f5,stroke:#6a1b9a
+    style DONE fill:#f3e5f5,stroke:#6a1b9a

@@ -1,0 +1,45 @@
+---
+title: "Session Entry — Mode Selection & Context Loading"
+---
+flowchart TD
+    START(("🤖 Agent reads\ndeveloper's\nfirst message")) --> DETECT{"Detect\nsession mode"}
+
+    DETECT -->|"'continue on BLE pairing'\n'where were we'\n'back to [change]'"| CONTINUE
+    DETECT -->|"'I want to add alerts'\n'let's build [new thing]'\n'new feature'"| BUILD
+    DETECT -->|"'let's plan v2'\n'brainstorm architecture'\n'how should we approach'"| PLAN
+    DETECT -->|"unclear"| BUILD
+
+    subgraph CONTINUE["🔄 CONTINUE (~600 tokens)"]
+        direction TB
+        C1["① Session Recovery\n────────────\nLast session: goal, accomplished,\nblockers, next_steps, files\n~200 tokens"]
+        C2["② Change Context\n────────────\nproposal.md summary\ntasks.md Linear refs\ndelta specs affected\n~150 tokens"]
+        C3["③ Change-Scoped Memory\n────────────\nObservations + decisions\nWHERE change_id matches\n~150 tokens"]
+        C4["④ Personal Notes\n────────────\nRelevant to files/specs\nbeing worked on\n~100 tokens"]
+        C1 --- C2 --- C3 --- C4
+    end
+
+    subgraph BUILD["🔨 BUILD (~400 tokens)"]
+        direction TB
+        B1["① Active Decisions\n────────────\nAll status=active decisions\n(outcomes only, no rationale)\nConstrains design choices\n~150 tokens"]
+        B2["② Spec Awareness\n────────────\ndocs/specs/index.md summary\nExisting spec areas\nActive changes (avoid conflicts)\n~100 tokens"]
+        B3["③ Recent Team Observations\n────────────\nLast 7 days, all authors\nRecent discoveries & bugfixes\n~100 tokens"]
+        B4["④ Personal Notes\n────────────\nPreferences & patterns\n~50 tokens"]
+        B1 --- B2 --- B3 --- B4
+    end
+
+    subgraph PLAN["💭 PLAN (~200 tokens)"]
+        direction TB
+        P1["① Personal Preferences\n────────────\nHow developer likes to work\nThinking patterns\nCommunication style\n~100 tokens"]
+        P2["② Project Identity\n────────────\ndocs/overview.md only\nName, purpose, pain points\nJust enough to ground convo\n~100 tokens"]
+        P1 --- P2
+    end
+
+    CONTINUE --> READY(("Agent is primed\nwith right context\nfor the task"))
+    BUILD --> READY
+    PLAN --> READY
+
+    style CONTINUE fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style BUILD fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style PLAN fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style START fill:#424242,color:#fff
+    style READY fill:#424242,color:#fff
