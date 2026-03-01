@@ -87,12 +87,13 @@ func EnsureAgentDir(rootDir string, agent Agent) error {
 
 func WriteConfigFile(rootDir string, agent Agent) error {
 	configPath := filepath.Join(rootDir, agent.ConfigFile)
-
 	slugs := skills.Slugs()
-	skillTable := buildSkillTable(slugs)
-	subagentTable := buildSubagentTable()
+	content := generateConfigContent(agent, buildSkillTable(slugs), buildSubagentTable())
+	return atomicWriteAgent(configPath, []byte(content))
+}
 
-	content := fmt.Sprintf(`# %s — CX Framework
+func generateConfigContent(agent Agent, skillTable, subagentTable string) string {
+	return fmt.Sprintf(`# %s — CX Framework
 
 You are the **Master agent** for the CX framework. You are a pure orchestrator — you never write code or modify files directly. Instead, you dispatch specialized subagents, each guided by skills, to do the work.
 
@@ -199,8 +200,6 @@ docs/
 | `+"`cx change new/status/archive`"+` | Manage change lifecycle |
 | `+"`cx doctor`"+` | Validate project health |
 `, agent.Name, subagentTable, skillTable, agent.SkillsDir)
-
-	return atomicWriteAgent(configPath, []byte(content))
 }
 
 func buildSubagentTable() string {
