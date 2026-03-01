@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/amald/cx/internal/doctor"
 	"github.com/amald/cx/internal/project"
@@ -21,6 +22,20 @@ func init() {
 	doctorCmd.Flags().BoolVar(&fixFlag, "fix", false, "Auto-fix fixable issues")
 }
 
+type checkDef struct {
+	label string
+	fn    func(string) doctor.CheckGroup
+}
+
+var checks = []checkDef{
+	{"checking docs/ structure", doctor.CheckDocsStructure},
+	{"checking memory health", doctor.CheckMemoryHealth},
+	{"checking index health", doctor.CheckIndexHealth},
+	{"checking git hooks", doctor.CheckGitHooks},
+	{"checking MCP config", doctor.CheckMCPConfig},
+	{"checking skill files", doctor.CheckSkillFiles},
+}
+
 func runDoctor(cmd *cobra.Command, args []string) error {
 	rootDir, err := project.IsGitRepo()
 	if err != nil {
@@ -31,28 +46,29 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 	ui.PrintHeader("cx doctor")
 	ui.PrintDivider()
+	ui.Pause(300 * time.Millisecond)
 
-	groups := doctor.RunAllChecks(rootDir)
-	errors, warnings := doctor.PrintReport(groups)
+	// Cascading check reveal
+	allGroups, totalErrors, totalWarnings := runChecks(rootDir, 400*time.Millisecond, 120*time.Millisecond)
 
 	fmt.Println()
 	ui.PrintDivider()
-	ui.PrintSummary(errors, warnings)
+	ui.PrintSummary(totalErrors, totalWarnings)
 
 	if !fixFlag {
-		fixable := doctor.CollectFixable(groups)
+		fixable := doctor.CollectFixable(allGroups)
 		if len(fixable) > 0 {
 			fmt.Println()
 			ui.PrintMuted(fmt.Sprintf("  %d fixable issue(s) — run cx doctor --fix to repair", len(fixable)))
 		}
-		if errors > 0 {
+		if totalErrors > 0 {
 			return errExitCode1
 		}
 		return nil
 	}
 
 	// --fix mode
-	fixable := doctor.CollectFixable(groups)
+	fixable := doctor.CollectFixable(allGroups)
 	if len(fixable) == 0 {
 		fmt.Println()
 		ui.PrintSuccess("nothing to fix")
@@ -72,24 +88,57 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	// Apply fixes with per-item spinner
 	fmt.Println()
-	errs := doctor.ApplyFixes(fixable)
-	for _, e := range errs {
-		ui.PrintError(fmt.Sprintf("fix failed: %v", e))
+	ui.PrintHeader("applying fixes")
+	for i, item := range fixable {
+		fixErr := ui.RunWithSpinner(fmt.Sprintf("fixing: %s", item.Label), 400*time.Millisecond, func() error {
+			return item.Fix()
+		})
+		if fixErr != nil {
+			ui.PrintError(fmt.Sprintf("fix failed: %s — %v", item.Label, fixErr))
+		} else {
+			ui.PrintSuccess(fmt.Sprintf("fixed: %s", item.Label))
+		}
+		if i < len(fixable)-1 {
+			ui.Pause(100 * time.Millisecond)
+		}
 	}
 
 	// Re-check after fixes
+	ui.Pause(300 * time.Millisecond)
 	fmt.Println()
 	ui.PrintHeader("re-checking")
 	ui.PrintDivider()
-	groups = doctor.RunAllChecks(rootDir)
-	errors, warnings = doctor.PrintReport(groups)
+
+	_, totalErrors, totalWarnings = runChecks(rootDir, 300*time.Millisecond, 100*time.Millisecond)
+
 	fmt.Println()
 	ui.PrintDivider()
-	ui.PrintSummary(errors, warnings)
+	ui.PrintSummary(totalErrors, totalWarnings)
 
-	if errors > 0 {
+	if totalErrors > 0 {
 		return errExitCode1
 	}
 	return nil
+}
+
+func runChecks(rootDir string, spinnerDur, pauseDur time.Duration) ([]doctor.CheckGroup, int, int) {
+	var allGroups []doctor.CheckGroup
+	var totalErrors, totalWarnings int
+
+	for _, c := range checks {
+		var group doctor.CheckGroup
+		_ = ui.RunWithSpinner(c.label, spinnerDur, func() error {
+			group = c.fn(rootDir)
+			return nil
+		})
+		e, w := doctor.PrintGroupReport(group)
+		allGroups = append(allGroups, group)
+		totalErrors += e
+		totalWarnings += w
+		ui.Pause(pauseDur)
+	}
+
+	return allGroups, totalErrors, totalWarnings
 }

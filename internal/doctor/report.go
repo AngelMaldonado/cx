@@ -8,18 +8,25 @@ import (
 
 func PrintReport(groups []CheckGroup) (errors, warnings int) {
 	for _, g := range groups {
-		ui.PrintHeader(g.Name)
-		for _, r := range g.Results {
-			switch r.Severity {
-			case Pass:
-				ui.PrintSuccess(r.Message)
-			case Warning:
-				ui.PrintWarning(r.Message)
-				warnings++
-			case Error:
-				ui.PrintError(r.Message)
-				errors++
-			}
+		e, w := PrintGroupReport(g)
+		errors += e
+		warnings += w
+	}
+	return errors, warnings
+}
+
+func PrintGroupReport(g CheckGroup) (errors, warnings int) {
+	ui.PrintHeader(g.Name)
+	for _, r := range g.Results {
+		switch r.Severity {
+		case Pass:
+			ui.PrintSuccess(r.Message)
+		case Warning:
+			ui.PrintWarning(r.Message)
+			warnings++
+		case Error:
+			ui.PrintError(r.Message)
+			errors++
 		}
 	}
 	return errors, warnings

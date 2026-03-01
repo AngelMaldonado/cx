@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/amald/cx/internal/agents"
 	"github.com/amald/cx/internal/direction"
@@ -35,65 +36,95 @@ func runInit(cmd *cobra.Command, args []string) error {
 		ui.PrintHeader("cx init")
 	}
 	ui.PrintDivider()
+	ui.Pause(300 * time.Millisecond)
 
 	// Step 2: Scaffold docs/
-	ui.PrintHeader("docs/ structure")
-	result, err := project.ScaffoldDocs(rootDir)
-	if err != nil {
-		ui.PrintError(fmt.Sprintf("scaffolding docs: %v", err))
+	var scaffoldResult *project.ScaffoldResult
+	scaffoldErr := ui.RunWithSpinner("scaffolding docs/", 600*time.Millisecond, func() error {
+		var err error
+		scaffoldResult, err = project.ScaffoldDocs(rootDir)
 		return err
+	})
+	if scaffoldErr != nil {
+		ui.PrintError(fmt.Sprintf("scaffolding docs: %v", scaffoldErr))
+		return scaffoldErr
 	}
-	for _, f := range result.Created {
+	ui.PrintHeader("docs/ structure")
+	for _, f := range scaffoldResult.Created {
 		ui.PrintSuccess(fmt.Sprintf("created %s", f))
 	}
-	for _, f := range result.Skipped {
+	for _, f := range scaffoldResult.Skipped {
 		ui.PrintMuted(fmt.Sprintf("skipped %s (exists)", f))
 	}
+	ui.Pause(200 * time.Millisecond)
 
 	// Step 3: Scaffold .cx/
-	created, err := project.ScaffoldCXCache(rootDir)
-	if err != nil {
-		ui.PrintError(fmt.Sprintf("scaffolding .cx: %v", err))
+	var cxCreated bool
+	cxErr := ui.RunWithSpinner("preparing .cx/", 400*time.Millisecond, func() error {
+		var err error
+		cxCreated, err = project.ScaffoldCXCache(rootDir)
 		return err
+	})
+	if cxErr != nil {
+		ui.PrintError(fmt.Sprintf("scaffolding .cx: %v", cxErr))
+		return cxErr
 	}
-	if created {
+	if cxCreated {
 		ui.PrintSuccess("created .cx/")
 	} else {
 		ui.PrintMuted("skipped .cx/ (exists)")
 	}
+	ui.Pause(300 * time.Millisecond)
 
-	// Step 4: Agent selection
+	// Step 4: Agent selection (interactive form, then spinner for setup)
 	fmt.Println()
 	selectedSlugs, err := ui.NewAgentSelect()
 	if err != nil {
 		return err
 	}
+	ui.Pause(200 * time.Millisecond)
+
+	type agentResult struct {
+		name  string
+		count int
+		err   error
+	}
+	var agentResults []agentResult
+
+	_ = ui.RunWithSpinner("installing agent configs + skills", 800*time.Millisecond, func() error {
+		for _, slug := range selectedSlugs {
+			agent, ok := agents.BySlug(slug)
+			if !ok {
+				continue
+			}
+			r := agentResult{name: agent.Name}
+			if err := agents.EnsureAgentDir(rootDir, agent); err != nil {
+				r.err = fmt.Errorf("creating dirs: %w", err)
+				agentResults = append(agentResults, r)
+				continue
+			}
+			if err := agents.WriteConfigFile(rootDir, agent); err != nil {
+				r.err = fmt.Errorf("writing config: %w", err)
+				agentResults = append(agentResults, r)
+				continue
+			}
+			count, err := agents.WriteSkills(rootDir, agent)
+			r.count = count
+			r.err = err
+			agentResults = append(agentResults, r)
+		}
+		return nil
+	})
 
 	ui.PrintHeader("agent setup")
-	for _, slug := range selectedSlugs {
-		agent, ok := agents.BySlug(slug)
-		if !ok {
-			continue
+	for _, r := range agentResults {
+		if r.err != nil {
+			ui.PrintError(fmt.Sprintf("%s — %v", r.name, r.err))
+		} else {
+			ui.PrintSuccess(fmt.Sprintf("%s — config + %d skills installed", r.name, r.count))
 		}
-
-		if err := agents.EnsureAgentDir(rootDir, agent); err != nil {
-			ui.PrintError(fmt.Sprintf("creating %s dirs: %v", agent.Name, err))
-			continue
-		}
-
-		if err := agents.WriteConfigFile(rootDir, agent); err != nil {
-			ui.PrintError(fmt.Sprintf("writing %s config: %v", agent.Name, err))
-			continue
-		}
-
-		count, err := agents.WriteSkills(rootDir, agent)
-		if err != nil {
-			ui.PrintError(fmt.Sprintf("writing %s skills: %v", agent.Name, err))
-			continue
-		}
-
-		ui.PrintSuccess(fmt.Sprintf("%s — config + %d skills installed", agent.Name, count))
 	}
+	ui.Pause(300 * time.Millisecond)
 
 	// Step 5: DIRECTION.md
 	directionPath := filepath.Join(rootDir, "DIRECTION.md")
@@ -103,64 +134,97 @@ func runInit(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
+		ui.Pause(200 * time.Millisecond)
 
 		fmt.Println()
 		priorities, err := ui.NewPrioritiesSelect()
 		if err != nil {
 			return err
 		}
+		ui.Pause(200 * time.Millisecond)
 
-		content := direction.GenerateDirection(projectType, priorities)
-		if err := os.WriteFile(directionPath, []byte(content), 0o644); err != nil {
-			ui.PrintError(fmt.Sprintf("writing DIRECTION.md: %v", err))
+		dirErr := ui.RunWithSpinner("generating DIRECTION.md", 700*time.Millisecond, func() error {
+			content := direction.GenerateDirection(projectType, priorities)
+			return os.WriteFile(directionPath, []byte(content), 0o644)
+		})
+		if dirErr != nil {
+			ui.PrintError(fmt.Sprintf("writing DIRECTION.md: %v", dirErr))
 		} else {
-			fmt.Println()
 			ui.PrintSuccess(fmt.Sprintf("created DIRECTION.md (%s)", direction.ProjectTypeLabel(projectType)))
 		}
 	} else {
 		fmt.Println()
 		ui.PrintMuted("skipped DIRECTION.md (exists)")
 	}
+	ui.Pause(300 * time.Millisecond)
 
-	// Step 6: Git hooks
-	ui.PrintHeader("git hooks")
-	hooks := []string{"post-merge", "post-checkout"}
-	for _, hookType := range hooks {
-		existsAlready, err := project.InstallHook(rootDir, hookType, false)
-		if err != nil {
-			ui.PrintError(fmt.Sprintf("installing %s hook: %v", hookType, err))
-			continue
+	// Step 6: Git hooks (spinner for batch install, interactive for conflicts)
+	type hookResult struct {
+		hookType      string
+		existsAlready bool
+		installed     bool
+		err           error
+	}
+	var hookResults []hookResult
+
+	_ = ui.RunWithSpinner("installing git hooks", 500*time.Millisecond, func() error {
+		for _, hookType := range []string{"post-merge", "post-checkout"} {
+			existsAlready, err := project.InstallHook(rootDir, hookType, false)
+			hookResults = append(hookResults, hookResult{
+				hookType:      hookType,
+				existsAlready: existsAlready,
+				installed:     !existsAlready && err == nil,
+				err:           err,
+			})
 		}
-		if existsAlready {
-			confirmed, err := ui.NewConfirmPrompt(fmt.Sprintf("%s hook exists without CX marker. Overwrite?", hookType))
+		return nil
+	})
+
+	ui.PrintHeader("git hooks")
+	for _, hr := range hookResults {
+		if hr.err != nil {
+			ui.PrintError(fmt.Sprintf("installing %s hook: %v", hr.hookType, hr.err))
+		} else if hr.installed {
+			ui.PrintSuccess(fmt.Sprintf("installed %s hook", hr.hookType))
+		} else if hr.existsAlready {
+			confirmed, err := ui.NewConfirmPrompt(fmt.Sprintf("%s hook exists without CX marker. Overwrite?", hr.hookType))
 			if err != nil {
 				return err
 			}
 			if confirmed {
-				if _, err := project.InstallHook(rootDir, hookType, true); err != nil {
-					ui.PrintError(fmt.Sprintf("installing %s hook: %v", hookType, err))
+				overwriteErr := ui.RunWithSpinner(fmt.Sprintf("overwriting %s hook", hr.hookType), 300*time.Millisecond, func() error {
+					_, err := project.InstallHook(rootDir, hr.hookType, true)
+					return err
+				})
+				if overwriteErr != nil {
+					ui.PrintError(fmt.Sprintf("installing %s hook: %v", hr.hookType, overwriteErr))
 				} else {
-					ui.PrintSuccess(fmt.Sprintf("installed %s hook (overwritten)", hookType))
+					ui.PrintSuccess(fmt.Sprintf("installed %s hook (overwritten)", hr.hookType))
 				}
 			} else {
-				ui.PrintMuted(fmt.Sprintf("skipped %s hook", hookType))
+				ui.PrintMuted(fmt.Sprintf("skipped %s hook", hr.hookType))
 			}
-		} else {
-			ui.PrintSuccess(fmt.Sprintf("installed %s hook", hookType))
 		}
 	}
+	ui.Pause(200 * time.Millisecond)
 
 	// Step 7: Register project
 	isFirstInit := project.IsFirstEverInit()
 
-	registered, err := project.RegisterProject(rootDir)
-	if err != nil {
-		ui.PrintWarning(fmt.Sprintf("registering project: %v", err))
+	var registered bool
+	regErr := ui.RunWithSpinner("registering project", 400*time.Millisecond, func() error {
+		var err error
+		registered, err = project.RegisterProject(rootDir)
+		return err
+	})
+	if regErr != nil {
+		ui.PrintWarning(fmt.Sprintf("registering project: %v", regErr))
 	} else if registered {
 		ui.PrintSuccess("registered in ~/.cx/projects.json")
 	}
+	ui.Pause(200 * time.Millisecond)
 
-	// Step 8: MCP check
+	// Step 8: MCP check (no spinner — instant read)
 	hasMCP, missing, err := project.CheckMCP(rootDir)
 	if err != nil {
 		ui.PrintWarning(fmt.Sprintf("checking MCP config: %v", err))
@@ -176,7 +240,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Step 9: First-time preferences
+	// Step 9: First-time preferences (interactive)
 	if isFirstInit {
 		fmt.Println()
 		autoUpdate, err := ui.NewConfirmPrompt("Enable automatic update checks?")
@@ -190,6 +254,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Step 10: Summary
+	ui.Pause(400 * time.Millisecond)
 	fmt.Println()
 	ui.PrintDivider()
 	ui.PrintBanner("CX initialized")
@@ -202,7 +267,9 @@ func runInit(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 	ui.PrintHeader("next steps")
 	ui.PrintMuted("  1. Review DIRECTION.md and customize for your project")
+	ui.Pause(100 * time.Millisecond)
 	ui.PrintMuted("  2. Run cx doctor to verify setup")
+	ui.Pause(100 * time.Millisecond)
 	ui.PrintMuted("  3. Start a conversation with your AI agent")
 	fmt.Println()
 
