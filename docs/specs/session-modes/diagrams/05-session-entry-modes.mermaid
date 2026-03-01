@@ -2,7 +2,7 @@
 title: "Session Entry — Mode Selection & Context Loading"
 ---
 flowchart TD
-    START(("🤖 Agent reads\ndeveloper's\nfirst message")) --> DETECT{"Detect\nsession mode"}
+    START(("🤖 Master reads\ndeveloper's\nfirst message")) --> DETECT{"Primer classifies\nsession mode"}
 
     DETECT -->|"'continue on BLE pairing'\n'where were we'\n'back to [change]'"| CONTINUE
     DETECT -->|"'I want to add alerts'\n'let's build [new thing]'\n'new feature'"| BUILD
@@ -34,7 +34,7 @@ flowchart TD
         P1 --- P2
     end
 
-    CONTINUE --> READY(("Agent is primed\nwith right context\nfor the task"))
+    CONTINUE --> READY(("Master is primed\nwith right context\nfor dispatch"))
     BUILD --> READY
     PLAN --> READY
 

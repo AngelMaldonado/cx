@@ -1,6 +1,6 @@
 # Spec: Session Entry Modes
 
-When a developer spawns a coding agent session, they're in one of three modes. Each has fundamentally different context needs. A **primer subagent** handles mode classification, context loading, and distillation — the main agent never interacts with `cx context` directly.
+When a developer starts a CX session, they're in one of three modes. Each has fundamentally different context needs. The **Primer** handles mode classification, context loading, and distillation — the Master never interacts with `cx context` directly.
 
 > Full priming architecture: [context-priming spec](../context-priming/spec.md)
 
@@ -14,11 +14,11 @@ See diagram: [session entry modes flowchart](diagrams/05-session-entry-modes.mer
 Developer starts session
         │
         ▼
-Main Agent spawns primer subagent
+Master spawns Primer
         │
         ▼
 Primer checks .cx/conflicts.json
-        │ (if conflicts exist → spawn conflict-resolver subagent first)
+        │ (if conflicts exist → spawn Conflict-resolver first)
         ▼
 Primer classifies developer's opening message
         │
@@ -46,7 +46,7 @@ Primer classifies developer's opening message
 
 **Signal phrases**: "let's continue", "where were we", "back to [feature]", "pick up on [change]", "resume", references an existing change name, mentions previous work.
 
-### What the primer loads
+### What the Primer loads
 
 **From `cx context --mode continue --change <name>` (the map):**
 
@@ -60,7 +60,7 @@ Primer classifies developer's opening message
 
 **From `cx context --load` (selective drill-in):**
 
-The primer loads the canonical spec for each area the change's delta touches, so the main agent knows the current state being modified.
+The Primer loads the canonical spec for each area the change's delta touches, so the Master knows the current state being modified.
 
 ### What gets excluded
 
@@ -78,7 +78,7 @@ The primer loads the canonical spec for each area the change's delta touches, so
 
 **Signal phrases**: "I want to add...", "let's build...", "new feature:", "we need to create...", "implement", describes something that doesn't exist yet.
 
-### What the primer loads
+### What the Primer loads
 
 **From `cx context --mode build` (the map):**
 
@@ -93,7 +93,7 @@ The primer loads the canonical spec for each area the change's delta touches, so
 
 **From `cx context --load` (selective drill-in):**
 
-The primer reads the spec index, identifies which spec areas relate to the developer's intent, and loads those. Typically 1-2 areas, rarely more. If an active change overlaps with the developer's intent, the primer includes a collision warning.
+The Primer reads the spec index, identifies which spec areas relate to the developer's intent, and loads those. Typically 1-2 areas, rarely more. If an active change overlaps with the developer's intent, the Primer includes a collision warning.
 
 ### What gets excluded
 
@@ -111,7 +111,7 @@ The primer reads the spec index, identifies which spec areas relate to the devel
 
 **Signal phrases**: "let's plan...", "we need to think about...", "brainstorm...", "what if we...", "how should we approach...", "architecture", "v2", "roadmap", "redesign".
 
-### What the primer loads
+### What the Primer loads
 
 **From `cx context --mode plan` (the map — no step 2 needed):**
 
@@ -138,7 +138,7 @@ Planning needs a **clean slate**. Loading the agent with implementation details,
 
 ## Mode Classification
 
-Classification is done by the **primer subagent**, not the binary. The primer reads the developer's opening message and applies these rules:
+Classification is done by the **Primer**, not the binary. The Primer reads the developer's opening message and applies these rules:
 
 ### Decision tree
 
@@ -149,7 +149,7 @@ Developer's opening message
     │   └── YES → CONTINUE (use that change name)
     │
     ├── Mentions "continue", "resume", "pick up", "where were we"?
-    │   └── YES → CONTINUE (primer checks active changes to find which one)
+    │   └── YES → CONTINUE (Primer checks active changes to find which one)
     │
     ├── Mentions "plan", "brainstorm", "think about", "redesign", "architecture"?
     │   └── YES → PLAN
@@ -162,13 +162,13 @@ Developer's opening message
 
 ### Disambiguation
 
-If CONTINUE is detected but the change name is ambiguous (e.g., "let's continue" with multiple active changes), the primer returns a disambiguation request instead of context. The main agent presents this to the developer as a question.
+If CONTINUE is detected but the change name is ambiguous (e.g., "let's continue" with multiple active changes), the Primer returns a disambiguation request instead of context. The Master presents this to the developer as a question.
 
 ---
 
 ## Token Budgets
 
-### What the primer consumes (disposable)
+### What the Primer consumes (disposable)
 
 | Mode | Map (step 1) | Loaded content (step 2) | Primer total |
 |------|-------------|------------------------|-------------|
@@ -176,7 +176,7 @@ If CONTINUE is detected but the change name is ambiguous (e.g., "let's continue"
 | BUILD | ~800 tok | ~2-4K tok (1-2 spec areas) | ~3-5K tok |
 | PLAN | ~400 tok | 0 tok | ~400 tok |
 
-### What the main agent receives
+### What the Master receives
 
 | Mode | Primed context |
 |------|---------------|
@@ -184,4 +184,6 @@ If CONTINUE is detected but the change name is ambiguous (e.g., "let's continue"
 | BUILD | 500-800 tok |
 | PLAN | 300-500 tok |
 
-The primer absorbs the full load and distills it. The main agent starts with only what's relevant, leaving maximum room for the actual work.
+The Primer absorbs the full load and distills it. The Master starts with only what's relevant, leaving maximum room for the actual work.
+
+> For how the Master dispatches work after receiving primed context, see [orchestration spec](../orchestration/spec.md).

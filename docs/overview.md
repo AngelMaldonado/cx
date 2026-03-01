@@ -41,7 +41,11 @@ A single `cx` binary that any project can adopt:
 ## Solution
 
 ```
-Developer → Coding Agent → reads skills → calls cx → reads/writes docs/
+Developer → Master (orchestrator) → dispatches agents → read skills → call cx → read/write docs/
+                │                        │
+                │                        ├── Primer (context priming)
+                │                        ├── Scout (codebase exploration)
+                │                        └── Supervisor → Contractor → Workers (implementation)
                 │
                 └──→ MCP servers (Linear, etc.) → external APIs
 

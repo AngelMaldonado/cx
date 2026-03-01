@@ -1,6 +1,8 @@
 # Spec: Conflict Resolution
 
-When teammates push memory files that semantically conflict — contradictory decisions, observations that disagree, or overlapping coverage of the same topic — the system detects and surfaces these for human resolution. Resolution is agent-assisted: a dedicated subagent identifies potential conflicts and interviews the developer to resolve them.
+When teammates push memory files that semantically conflict — contradictory decisions, observations that disagree, or overlapping coverage of the same topic — the system detects and surfaces these for human resolution. Resolution is agent-assisted: the Conflict-resolver identifies potential conflicts and interviews the developer to resolve them.
+
+See [orchestration spec](../orchestration/spec.md) for how Conflict-resolver fits into the agent hierarchy.
 
 ---
 
@@ -14,16 +16,16 @@ git pull
     → cx index rebuild (updates FTS5 index with new files)
     → cx conflicts detect (compares new entities against existing index)
     → if conflicts found: writes .cx/conflicts.json
-    → next agent session: primer reads conflicts file, spawns conflict-resolver subagent
+    → next agent session: Primer reads conflicts file, spawns Conflict-resolver
 ```
 
-The binary handles detection (fast, deterministic). The subagent handles resolution (reasoning, interviewing).
+The binary handles detection (fast, deterministic). The Conflict-resolver handles resolution (reasoning, interviewing).
 
 ---
 
 ## Detection — `cx conflicts detect`
 
-The binary identifies **new entities** (files that appeared since the last index build) and compares them against the existing index. It does not use a hardcoded similarity threshold — it produces a candidate set that the subagent evaluates.
+The binary identifies **new entities** (files that appeared since the last index build) and compares them against the existing index. It does not use a hardcoded similarity threshold — it produces a candidate set that the Conflict-resolver evaluates.
 
 ### What the binary provides
 
@@ -65,7 +67,7 @@ The binary finds candidates using index queries, not semantic reasoning:
 | FTS5 proximity | High FTS5 rank when using the new entity's title as a query against existing entities |
 | Both active decisions | Two decisions with `status: active` sharing tags or spec refs |
 
-The binary casts a wide net. False positives are expected — the subagent filters them.
+The binary casts a wide net. False positives are expected — the Conflict-resolver filters them.
 
 ### Output
 
@@ -88,13 +90,13 @@ If no candidates are found for any new entity, the file is not written (or an ex
 
 ---
 
-## Resolution — Conflict-Resolver Subagent
+## Resolution — Conflict-Resolver
 
-When the primer subagent detects `.cx/conflicts.json` at session start, it spawns a **dedicated conflict-resolver subagent** before proceeding with normal context priming.
+When the Primer detects `.cx/conflicts.json` at session start, it spawns the **Conflict-resolver** before proceeding with normal context priming.
 
-### Subagent behavior
+### Conflict-resolver behavior
 
-The conflict-resolver subagent:
+The Conflict-resolver:
 
 1. **Reads** `.cx/conflicts.json` to get the conflict candidates
 2. **Loads** the full content of each entity pair using `cx context --load memory <id>`
@@ -104,7 +106,7 @@ The conflict-resolver subagent:
 
 ### Interview format
 
-The skill explicitly instructs the subagent to interview the developer. Example interaction:
+The skill explicitly instructs the Conflict-resolver to interview the developer. Example interaction:
 
 ```
 Conflict detected between two active decisions:
@@ -124,22 +126,22 @@ Options:
 - Write a new decision that reconciles both
 ```
 
-The subagent must use the AskUserQuestion tool — it never resolves conflicts autonomously.
+The Conflict-resolver must use the AskUserQuestion tool — it never resolves conflicts autonomously.
 
 ### Resolution actions
 
-Based on the developer's answer, the subagent calls the appropriate `cx` command:
+Based on the developer's answer, the Conflict-resolver calls the appropriate `cx` command:
 
 | Developer choice | Action |
 |-----------------|--------|
 | Keep A, deprecate B | `cx memory decide` with `deprecates: <B-slug>` |
 | Keep B, deprecate A | `cx memory decide` with `deprecates: <A-slug>` |
-| Both valid | No action — subagent removes the pair from conflicts.json |
+| Both valid | No action — Conflict-resolver removes the pair from conflicts.json |
 | New reconciling decision | `cx memory decide` with `deprecates: <A-slug>` (new decision deprecates the old one it replaces) |
 
 ### Cleanup
 
-After all conflicts are resolved (or dismissed), the subagent deletes `.cx/conflicts.json`. The primer then proceeds with normal context priming.
+After all conflicts are resolved (or dismissed), the Conflict-resolver deletes `.cx/conflicts.json`. The Primer then proceeds with normal context priming.
 
 If the developer dismisses all conflicts without resolving them, the file is still deleted — the same conflicts won't be re-raised. They'll only resurface if new entities arrive that match the same candidates.
 
@@ -147,7 +149,7 @@ If the developer dismisses all conflicts without resolving them, the file is sti
 
 ## What counts as a conflict
 
-The subagent — not the binary — decides what's a genuine conflict. The skill provides these heuristics:
+The Conflict-resolver — not the binary — decides what's a genuine conflict. The skill provides these heuristics:
 
 **Genuine conflicts (should surface):**
 - Two `active` decisions on the same topic reaching different conclusions
@@ -160,7 +162,7 @@ The subagent — not the binary — decides what's a genuine conflict. The skill
 - Entities with overlapping tags but unrelated content
 - An old entity that's already deprecated
 
-The subagent reads the full content of both entities to make this judgment — tag/spec overlap alone is not sufficient to declare a conflict.
+The Conflict-resolver reads the full content of both entities to make this judgment — tag/spec overlap alone is not sufficient to declare a conflict.
 
 ---
 
@@ -168,7 +170,7 @@ The subagent reads the full content of both entities to make this judgment — t
 
 ### Multiple conflicts in one pull
 
-If a pull brings 5 new files and 3 have conflicts, the subagent presents them one at a time. The developer resolves each before seeing the next.
+If a pull brings 5 new files and 3 have conflicts, the Conflict-resolver presents them one at a time. The developer resolves each before seeing the next.
 
 ### Conflict with a deprecated entity
 

@@ -139,7 +139,7 @@ CREATE VIRTUAL TABLE docs_fts USING fts5(
 
 ## cx context --load
 
-Returns structured output for a specific resource. Used by the primer subagent during context priming.
+Returns structured output for a specific resource. Used by the Primer during context priming.
 
 ```bash
 cx context --load spec <area>

@@ -6,7 +6,7 @@ The brainstorm phase is for structured ideation before committing to a change. I
 
 ## When to Use
 
-Brainstorming is the natural path from **PLAN** mode. The developer is thinking, not building. The primer subagent detects PLAN mode, and the main agent uses the brainstorm skill.
+Brainstorming is the natural path from **PLAN** mode. The developer is thinking, not building. The Primer detects PLAN mode, and the Master uses the brainstorm skill.
 
 BUILD mode can also enter brainstorm if the agent judges the scope is large enough to warrant structured thinking first. The skill guides this decision:
 - Quick fix or small feature → skip brainstorm, `cx change new` directly

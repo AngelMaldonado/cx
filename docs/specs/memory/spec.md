@@ -652,7 +652,7 @@ On failure, the command prints the missing fields and exits non-zero without wri
 
 ## Context Priming
 
-Memory is one input to context priming, not the whole picture. The `cx context` command (not `cx memory context`) assembles memory alongside specs, changes, and other docs for session start. This is handled by a **primer subagent**, not the main agent.
+Memory is one input to context priming, not the whole picture. The `cx context` command (not `cx memory context`) assembles memory alongside specs, changes, and other docs for session start. This is handled by the **Primer**, not the Master.
 
 See [context-priming spec](../context-priming/spec.md) for the full priming architecture.
 
@@ -664,7 +664,7 @@ See [context-priming spec](../context-priming/spec.md) for the full priming arch
 | CONTINUE | Session recovery (full), change-scoped observations + decisions (compact), personal notes |
 | PLAN | Personal preference notes only |
 
-The primer subagent receives these as part of the context map, evaluates relevance against the developer's intent, and distills them into the primed context output.
+The Primer receives these as part of the context map, evaluates relevance against the developer's intent, and distills them into the primed context output.
 
 ---
 
@@ -696,7 +696,7 @@ The primer subagent receives these as part of the context map, evaluates relevan
 
 See [search spec](../search/spec.md) for the full unified search interface. `cx memory search` remains as an alias during migration.
 
-### Context Priming (called by primer subagent, not main agent)
+### Context Priming (called by Primer, not Master)
 
 | Command | Action |
 |---------|--------|

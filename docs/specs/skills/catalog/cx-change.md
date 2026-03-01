@@ -1,7 +1,7 @@
 # Skill: cx-change
 
 ## Description
-Teaches the agent how to manage the full change lifecycle — creating changes, tracking status, and archiving completed work. A change is the unit of structured work in CX: it has a proposal (why), a design (how), tasks (what), and optional delta specs (what changes in existing specs).
+Teaches the Master and Contractor how to manage the full change lifecycle — creating changes, tracking status, and archiving completed work. A change is the unit of structured work in CX: it has a proposal (why), a design (how), tasks (what), and optional delta specs (what changes in existing specs).
 
 ## Triggers
 - Developer wants to start new work without brainstorming ("let's build X", "create a change for Y")

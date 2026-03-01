@@ -4,15 +4,26 @@ title: "CX System Architecture"
 graph TB
     subgraph DEV["👤 Developer"]
         direction LR
-        D1["Talks to Agent"]
+        D1["Talks to Master"]
         D2["cx dashboard (TUI)"]
     end
 
-    subgraph AGENTS["🤖 Coding Agents"]
-        direction LR
-        Claude[".claude/"]
-        Gemini[".gemini/"]
-        Codex[".codex/"]
+    subgraph AGENTS["🤖 Agent Hierarchy"]
+        direction TB
+        Master["Master (orchestrator)"]
+        Primer["Primer (context)"]
+        Reviewer["Reviewer (quality gate)"]
+        Scout["Scout (read-only)"]
+        Supervisor["Supervisor (team lead)"]
+        Contractor["Contractor (foreman)"]
+        Workers["Workers (implementation)"]
+        Master --> Primer
+        Master --> Reviewer
+        Master --> Scout
+        Master --> Supervisor
+        Supervisor --> Scout
+        Supervisor --> Contractor
+        Contractor --> Workers
     end
 
     subgraph CX["⚙️ CX Binary"]
@@ -50,10 +61,10 @@ graph TB
         Git["Git History"]
     end
 
-    DEV -->|"natural language"| AGENTS
+    DEV -->|"natural language"| Master
     DEV -->|"direct access"| Dashboard
     AGENTS -->|"read skills\ncall cx commands"| CX
-    AGENTS -->|"MCP protocol"| MCP
+    Master -->|"MCP protocol"| MCP
     CX -->|"read/write"| DOCS
     CX -->|"read/write"| MEM
     CX -->|"generate configs"| AGENTS

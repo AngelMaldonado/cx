@@ -1,7 +1,7 @@
 # Skill: cx-doctor
 
 ## Description
-Teaches the agent how to run project health checks and fix common issues. `cx doctor` validates the docs/ structure, memory files, git hooks, and MCP configuration. With `--fix`, it auto-repairs what it can.
+Teaches the Master how to run project health checks and fix common issues. `cx doctor` validates the docs/ structure, memory files, git hooks, and MCP configuration. With `--fix`, it auto-repairs what it can.
 
 ## Triggers
 - Developer asks about project health ("is everything set up right?", "check the project", "run doctor")

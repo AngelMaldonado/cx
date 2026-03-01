@@ -1,7 +1,7 @@
 # Skill: cx-brainstorm
 
 ## Description
-Teaches the agent how to create and decompose masterfiles for brainstorming. A masterfile is a freeform document in `docs/masterfiles/` where ideas are explored before being structured into a formal change. This skill covers creation (`cx brainstorm`) and transformation into a change (`cx decompose`).
+Teaches the Master how to create and decompose masterfiles for brainstorming. A masterfile is a freeform document in `docs/masterfiles/` where ideas are explored before being structured into a formal change. This skill covers creation (`cx brainstorm`) and transformation into a change (`cx decompose`).
 
 ## Triggers
 - Developer wants to explore a new idea ("let's brainstorm", "I have an idea", "what if we...")

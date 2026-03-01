@@ -47,10 +47,13 @@ These override the agent's general behavior when this skill is active.
 
 | Type | Used by | Spawned how |
 |------|---------|-------------|
-| **Main agent skill** | The developer's coding agent | Agent reads the skill from its skills directory |
-| **Subagent skill** | A disposable subagent with its own context window | Main agent spawns a subagent, passes the skill |
+| **Master skill** | The Master agent (pure orchestrator) | Master reads the skill from its skills directory |
+| **Standalone agent skill** | Primer, Conflict-resolver, Reviewer (disposable context) | Master or Primer spawns the agent, passes the skill |
+| **Team agent skill** | Scout, Contractor, Workers within a team | Supervisor or Contractor spawns the agent, passes the skill |
 
-Subagent skills (cx-prime, cx-reverse, cx-conflict-resolve) include explicit instructions for what the subagent should output back to the main agent.
+Standalone agent skills (cx-prime, cx-conflict-resolve, cx-review) include explicit instructions for what the agent should output back to its spawner. Team agent skills (cx-scout, cx-supervise, cx-contract) include coordination instructions for working within the team hierarchy.
+
+See [orchestration spec](../orchestration/spec.md) for the full agent hierarchy.
 
 ---
 
@@ -79,17 +82,20 @@ Skill files are embedded in the Go binary at build time using `go:embed`. This m
 
 ## Skill Registry
 
-| Skill | Type | Purpose |
-|-------|------|---------|
-| [cx-prime](catalog/cx-prime.md) | Subagent | Context priming at session start |
-| [cx-memory](catalog/cx-memory.md) | Main agent | Save observations, decisions, sessions |
-| [cx-brainstorm](catalog/cx-brainstorm.md) | Main agent | Create and decompose masterfiles |
-| [cx-refine](catalog/cx-refine.md) | Main agent | Iteratively improve masterfiles |
-| [cx-change](catalog/cx-change.md) | Main agent | Manage change lifecycle |
-| [cx-linear](catalog/cx-linear.md) | Main agent | Linear integration via MCP |
-| [cx-reverse](catalog/cx-reverse.md) | Subagent | Reverse-engineer existing codebases |
-| [cx-doctor](catalog/cx-doctor.md) | Main agent | Project health checks |
-| [cx-conflict-resolve](catalog/cx-conflict-resolve.md) | Subagent | Resolve semantic conflicts after git pull |
+| Skill | Type | Used by | Purpose |
+|-------|------|---------|---------|
+| [cx-prime](catalog/cx-prime.md) | Standalone agent | Primer | Context priming at session start |
+| [cx-memory](catalog/cx-memory.md) | Master / Team agent | Master, Contractor | Save observations, decisions, sessions |
+| [cx-brainstorm](catalog/cx-brainstorm.md) | Master | Master | Create and decompose masterfiles |
+| [cx-refine](catalog/cx-refine.md) | Master | Master | Iteratively improve masterfiles |
+| [cx-change](catalog/cx-change.md) | Master / Team agent | Master, Contractor | Manage change lifecycle |
+| [cx-linear](catalog/cx-linear.md) | Master / Team agent | Master, Contractor | Linear integration via MCP |
+| [cx-scout](catalog/cx-scout.md) | Team agent | Scout | Read-only codebase exploration |
+| [cx-supervise](catalog/cx-supervise.md) | Team agent | Supervisor | Team coordination for complex tasks |
+| [cx-contract](catalog/cx-contract.md) | Team agent | Contractor | Implementation coordination and Worker management |
+| [cx-doctor](catalog/cx-doctor.md) | Master | Master | Project health checks |
+| [cx-review](catalog/cx-review.md) | Standalone agent | Reviewer | Post-implementation review against specs |
+| [cx-conflict-resolve](catalog/cx-conflict-resolve.md) | Standalone agent | Conflict-resolver | Resolve semantic conflicts after git pull |
 
 ---
 

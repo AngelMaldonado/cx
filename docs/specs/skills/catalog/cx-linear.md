@@ -1,7 +1,7 @@
 # Skill: cx-linear
 
 ## Description
-Teaches the agent how to integrate with Linear for task tracking. CX does not call the Linear API directly — all Linear communication happens through the agent's MCP server. This skill defines the workflow for creating issues, updating status, and referencing them in tasks.md.
+Teaches the Master and Contractor how to integrate with Linear for task tracking. CX does not call the Linear API directly — all Linear communication happens through the agent's MCP server. This skill defines the workflow for creating issues, updating status, and referencing them in tasks.md.
 
 ## Triggers
 - Developer mentions a task that should be tracked ("create an issue for this", "add this to Linear")

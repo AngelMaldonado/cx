@@ -1,7 +1,7 @@
 # Skill: cx-refine
 
 ## Description
-Teaches the agent how to iteratively improve a masterfile during brainstorming. Refinement is a skill-guided activity — there is no binary command. The agent reads the current masterfile, identifies gaps or weak areas, and edits it directly based on conversation with the developer.
+Teaches the Master how to iteratively improve a masterfile during brainstorming. Refinement is a skill-guided activity — there is no binary command. The agent reads the current masterfile, identifies gaps or weak areas, and edits it directly based on conversation with the developer.
 
 ## Triggers
 - Developer asks to improve or iterate on a masterfile ("let's refine this", "what's missing?", "sharpen the vision")

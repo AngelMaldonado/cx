@@ -35,7 +35,7 @@ graph TB
     DEC -->|"parsed into"| IDX
     SESS -->|"parsed into"| IDX
     
-    subgraph QUERY["cx context (via primer subagent)"]
+    subgraph QUERY["cx context (via Primer)"]
         Q1["1. Latest session → next_steps"]
         Q2["2. Active decisions → outcomes"]
         Q3["3. Recent observations → summaries"]
@@ -44,7 +44,7 @@ graph TB
     
     IDX -->|"project search"| QUERY
     PDB -->|"local search"| QUERY
-    QUERY -->|"~500 tokens"| AGENT["🤖 Agent gets\ncomposed context"]
+    QUERY -->|"~500 tokens"| AGENT["🤖 Master gets\ncomposed context"]
     
     style GIT fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
     style LOCAL fill:#fff3e0,stroke:#e65100,stroke-width:2px

@@ -1,7 +1,7 @@
 # Skill: cx-memory
 
 ## Description
-Teaches the main agent how to save observations, decisions, and session summaries using the cx memory commands. The agent uses this skill during and at the end of work sessions to record team knowledge. Before saving, the agent consults DIRECTION.md to decide if the information is worth recording.
+Teaches the Master and Contractor how to save observations, decisions, and session summaries using the cx memory commands. These agents use this skill during and at the end of work sessions to record team knowledge. Before saving, the agent consults DIRECTION.md to decide if the information is worth recording.
 
 ## Triggers
 - Agent discovers something non-obvious (bug behavior, external system constraint, undocumented API behavior)

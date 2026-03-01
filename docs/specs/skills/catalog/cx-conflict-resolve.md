@@ -1,10 +1,10 @@
 # Skill: cx-conflict-resolve
 
 ## Description
-Conflict resolution skill for a dedicated subagent. Spawned when `.cx/conflicts.json` exists at session start (detected by the primer). The subagent loads conflicting entity pairs, reasons about whether they represent genuine semantic conflicts, and interviews the developer to resolve each one.
+Conflict resolution skill for the Conflict-resolver. Spawned by the Primer when `.cx/conflicts.json` exists at session start. The Conflict-resolver loads conflicting entity pairs, reasons about whether they represent genuine semantic conflicts, and interviews the developer to resolve each one.
 
 ## Triggers
-- Primer subagent detects `.cx/conflicts.json` exists during cx-prime steps
+- Primer detects `.cx/conflicts.json` exists during cx-prime steps
 - Developer explicitly asks to resolve conflicts ("check for conflicts", "any conflicts from the pull?")
 
 ## Steps
@@ -34,7 +34,7 @@ Conflict resolution skill for a dedicated subagent. Spawned when `.cx/conflicts.
    - **Reconcile**: Work with the developer to draft a new entity that captures the reconciled view, deprecating whichever old entities it replaces.
 
 5. After all conflicts are processed, delete `.cx/conflicts.json`.
-6. Return a summary to the primer/main agent: how many conflicts were found, how many resolved, how many dismissed.
+6. Return a summary to the Primer: how many conflicts were found, how many resolved, how many dismissed.
 
 ## Rules
 - **Always interview the developer for genuine conflicts — never resolve autonomously.** The whole point is human judgment on semantic disagreements.
