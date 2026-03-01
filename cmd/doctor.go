@@ -34,6 +34,7 @@ var checks = []checkDef{
 	{"checking git hooks", doctor.CheckGitHooks},
 	{"checking MCP config", doctor.CheckMCPConfig},
 	{"checking skill files", doctor.CheckSkillFiles},
+	{"checking subagent files", doctor.CheckSubagentFiles},
 }
 
 func runDoctor(cmd *cobra.Command, args []string) error {

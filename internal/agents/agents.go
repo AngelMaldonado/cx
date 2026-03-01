@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/amald/cx/internal/skills"
 )
 
 type Agent struct {
@@ -13,6 +15,7 @@ type Agent struct {
 	Dir        string
 	ConfigFile string
 	SkillsDir  string
+	AgentsDir  string // empty if tool doesn't support subagent definitions
 }
 
 func All() []Agent {
@@ -23,6 +26,7 @@ func All() []Agent {
 			Dir:        ".claude",
 			ConfigFile: "CLAUDE.md",
 			SkillsDir:  ".claude/skills",
+			AgentsDir:  ".claude/agents",
 		},
 		{
 			Slug:       "gemini",
@@ -30,6 +34,7 @@ func All() []Agent {
 			Dir:        ".gemini",
 			ConfigFile: "GEMINI.md",
 			SkillsDir:  ".gemini/skills",
+			AgentsDir:  ".gemini/agents",
 		},
 		{
 			Slug:       "codex",
@@ -37,6 +42,7 @@ func All() []Agent {
 			Dir:        ".codex",
 			ConfigFile: "AGENTS.md",
 			SkillsDir:  ".codex/skills",
+			AgentsDir:  ".codex/agents",
 		},
 	}
 }
@@ -70,14 +76,20 @@ func EnsureAgentDir(rootDir string, agent Agent) error {
 	if err := os.MkdirAll(skillsDir, 0o755); err != nil {
 		return fmt.Errorf("creating %s: %w", agent.SkillsDir, err)
 	}
+	if agent.AgentsDir != "" {
+		agentsDir := filepath.Join(rootDir, agent.AgentsDir)
+		if err := os.MkdirAll(agentsDir, 0o755); err != nil {
+			return fmt.Errorf("creating %s: %w", agent.AgentsDir, err)
+		}
+	}
 	return nil
 }
 
 func WriteConfigFile(rootDir string, agent Agent) error {
 	configPath := filepath.Join(rootDir, agent.ConfigFile)
 
-	skillNames := skillFileNames()
-	table := buildSkillTable(skillNames)
+	slugs := skills.Slugs()
+	table := buildSkillTable(slugs)
 
 	content := fmt.Sprintf(`# %s Configuration
 
@@ -87,7 +99,8 @@ func WriteConfigFile(rootDir string, agent Agent) error {
 
 ## Usage
 
-Skills are located in `+"`%s/`"+`. Each skill file defines:
+Each skill is a directory in `+"`%s/`"+` containing a `+"`SKILL.md`"+` file with:
+- **YAML frontmatter**: name and description (used for auto-invocation)
 - **Description**: What the skill does
 - **Triggers**: When to activate the skill
 - **Steps**: How to execute the skill
@@ -97,32 +110,14 @@ Skills are located in `+"`%s/`"+`. Each skill file defines:
 	return atomicWriteAgent(configPath, []byte(content))
 }
 
-func buildSkillTable(names []string) string {
+func buildSkillTable(slugs []string) string {
 	var sb strings.Builder
-	sb.WriteString("| Skill | File |\n")
+	sb.WriteString("| Skill | Path |\n")
 	sb.WriteString("|-------|------|\n")
-	for _, name := range names {
-		slug := strings.TrimSuffix(name, ".md")
-		sb.WriteString(fmt.Sprintf("| %s | [%s](skills/%s) |\n", slug, name, name))
+	for _, slug := range slugs {
+		sb.WriteString(fmt.Sprintf("| %s | [SKILL.md](skills/%s/SKILL.md) |\n", slug, slug))
 	}
 	return sb.String()
-}
-
-func skillFileNames() []string {
-	return []string{
-		"cx-brainstorm.md",
-		"cx-change.md",
-		"cx-conflict-resolve.md",
-		"cx-contract.md",
-		"cx-doctor.md",
-		"cx-linear.md",
-		"cx-memory.md",
-		"cx-prime.md",
-		"cx-refine.md",
-		"cx-review.md",
-		"cx-scout.md",
-		"cx-supervise.md",
-	}
 }
 
 func atomicWriteAgent(path string, data []byte) error {

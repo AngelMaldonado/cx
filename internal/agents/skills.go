@@ -2,12 +2,15 @@ package agents
 
 import (
 	"bytes"
+	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/amald/cx/internal/skills"
 )
 
+// WriteSkills writes all embedded skills to the agent's skills directory
+// using the <skill-name>/SKILL.md convention. Always overwrites.
 func WriteSkills(rootDir string, agent Agent) (int, error) {
 	names := skills.Names()
 	written := 0
@@ -17,7 +20,12 @@ func WriteSkills(rootDir string, agent Agent) (int, error) {
 		if err != nil {
 			return written, err
 		}
-		dest := filepath.Join(rootDir, agent.SkillsDir, name)
+		slug := strings.TrimSuffix(name, ".md")
+		skillDir := filepath.Join(rootDir, agent.SkillsDir, slug)
+		if err := os.MkdirAll(skillDir, 0o755); err != nil {
+			return written, err
+		}
+		dest := filepath.Join(skillDir, "SKILL.md")
 		if err := atomicWriteAgent(dest, content); err != nil {
 			return written, err
 		}
@@ -27,14 +35,16 @@ func WriteSkills(rootDir string, agent Agent) (int, error) {
 	return written, nil
 }
 
-func SkillMatchesEmbedded(onDisk []byte, name string) bool {
-	embedded, err := skills.Content(name)
+// SkillMatchesEmbedded checks if the on-disk SKILL.md matches the embedded version.
+func SkillMatchesEmbedded(onDisk []byte, slug string) bool {
+	embedded, err := skills.Content(slug + ".md")
 	if err != nil {
 		return false
 	}
 	return bytes.Equal(onDisk, embedded)
 }
 
+// ValidateSkillSections checks that a SKILL.md contains all required sections.
 func ValidateSkillSections(content []byte) []string {
 	required := []string{"## Description", "## Triggers", "## Steps", "## Rules"}
 	text := string(content)

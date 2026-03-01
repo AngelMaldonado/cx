@@ -40,6 +40,7 @@ func RunAllChecks(rootDir string) []CheckGroup {
 		CheckGitHooks(rootDir),
 		CheckMCPConfig(rootDir),
 		CheckSkillFiles(rootDir),
+		CheckSubagentFiles(rootDir),
 	}
 }
 
@@ -108,14 +109,14 @@ func CheckDocsStructure(rootDir string) CheckGroup {
 	}
 
 	// Check DIRECTION.md
-	directionPath := filepath.Join(rootDir, "DIRECTION.md")
+	directionPath := filepath.Join(rootDir, "docs", "memory", "DIRECTION.md")
 	if _, err := os.Stat(directionPath); os.IsNotExist(err) {
 		group.Results = append(group.Results, CheckResult{
 			Name:     "DIRECTION.md",
 			Severity: Warning,
-			Message:  "DIRECTION.md not found — run cx init to generate",
+			Message:  "docs/memory/DIRECTION.md not found — run cx init to generate",
 			Fixable:  true,
-			FixLabel: "create DIRECTION.md from template",
+			FixLabel: "create docs/memory/DIRECTION.md from template",
 			FixFunc: func() error {
 				tmpl := "# DIRECTION\n\n<!-- Run cx init to generate project-specific guidance -->\n"
 				return os.WriteFile(directionPath, []byte(tmpl), 0o644)
@@ -125,7 +126,7 @@ func CheckDocsStructure(rootDir string) CheckGroup {
 		group.Results = append(group.Results, CheckResult{
 			Name:     "DIRECTION.md",
 			Severity: Pass,
-			Message:  "DIRECTION.md exists",
+			Message:  "docs/memory/DIRECTION.md exists",
 		})
 	}
 
@@ -292,20 +293,21 @@ func CheckSkillFiles(rootDir string) CheckGroup {
 			continue
 		}
 
-		mdCount := 0
+		skillCount := 0
 		driftCount := 0
 		sectionIssues := 0
 
 		for _, e := range entries {
-			if !strings.HasSuffix(e.Name(), ".md") {
+			if !e.IsDir() {
 				continue
 			}
-			mdCount++
-
-			data, err := os.ReadFile(filepath.Join(skillsDir, e.Name()))
+			slug := e.Name()
+			skillFile := filepath.Join(skillsDir, slug, "SKILL.md")
+			data, err := os.ReadFile(skillFile)
 			if err != nil {
 				continue
 			}
+			skillCount++
 
 			// Check sections
 			missing := agents.ValidateSkillSections(data)
@@ -314,7 +316,7 @@ func CheckSkillFiles(rootDir string) CheckGroup {
 			}
 
 			// Check drift from embedded
-			if !agents.SkillMatchesEmbedded(data, e.Name()) {
+			if !agents.SkillMatchesEmbedded(data, slug) {
 				driftCount++
 			}
 		}
@@ -340,11 +342,69 @@ func CheckSkillFiles(rootDir string) CheckGroup {
 					return err
 				},
 			})
-		} else if mdCount > 0 {
+		} else if skillCount > 0 {
 			group.Results = append(group.Results, CheckResult{
 				Name:     agent.Name + " skills",
 				Severity: Pass,
-				Message:  fmt.Sprintf("%s: %d skill files, all in sync", agent.Name, mdCount),
+				Message:  fmt.Sprintf("%s: %d skills, all in sync", agent.Name, skillCount),
+			})
+		}
+	}
+
+	return group
+}
+
+func CheckSubagentFiles(rootDir string) CheckGroup {
+	group := CheckGroup{Name: "subagent files"}
+
+	installed := agents.DetectInstalled(rootDir)
+	if len(installed) == 0 {
+		return group
+	}
+
+	expectedSlugs := agents.SubagentSlugs()
+
+	for _, agent := range installed {
+		if agent.AgentsDir == "" {
+			continue
+		}
+
+		agentsDir := filepath.Join(rootDir, agent.AgentsDir)
+		missingCount := 0
+		presentCount := 0
+
+		ext := ".md"
+		if agent.Slug == "codex" {
+			ext = ".toml"
+		}
+
+		for _, slug := range expectedSlugs {
+			agentFile := filepath.Join(agentsDir, slug+ext)
+			if _, err := os.Stat(agentFile); os.IsNotExist(err) {
+				missingCount++
+			} else {
+				presentCount++
+			}
+		}
+
+		if missingCount > 0 {
+			a := agent
+			group.Results = append(group.Results, CheckResult{
+				Name:     agent.Name + " subagents",
+				Severity: Warning,
+				Message:  fmt.Sprintf("%s: %d/%d subagent(s) missing", agent.Name, missingCount, len(expectedSlugs)),
+				Fixable:  true,
+				FixLabel: fmt.Sprintf("sync %s subagents", agent.Name),
+				FixFunc: func() error {
+					_, err := agents.WriteSubagents(rootDir, a)
+					return err
+				},
+			})
+		} else if presentCount > 0 {
+			group.Results = append(group.Results, CheckResult{
+				Name:     agent.Name + " subagents",
+				Severity: Pass,
+				Message:  fmt.Sprintf("%s: %d subagents present", agent.Name, presentCount),
 			})
 		}
 	}

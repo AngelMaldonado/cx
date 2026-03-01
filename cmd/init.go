@@ -85,9 +85,10 @@ func runInit(cmd *cobra.Command, args []string) error {
 	ui.Pause(200 * time.Millisecond)
 
 	type agentResult struct {
-		name  string
-		count int
-		err   error
+		name      string
+		skills    int
+		subagents int
+		err       error
 	}
 	var agentResults []agentResult
 
@@ -108,8 +109,15 @@ func runInit(cmd *cobra.Command, args []string) error {
 				agentResults = append(agentResults, r)
 				continue
 			}
-			count, err := agents.WriteSkills(rootDir, agent)
-			r.count = count
+			skillCount, err := agents.WriteSkills(rootDir, agent)
+			if err != nil {
+				r.err = fmt.Errorf("writing skills: %w", err)
+				agentResults = append(agentResults, r)
+				continue
+			}
+			r.skills = skillCount
+			saCount, err := agents.WriteSubagents(rootDir, agent)
+			r.subagents = saCount
 			r.err = err
 			agentResults = append(agentResults, r)
 		}
@@ -120,14 +128,16 @@ func runInit(cmd *cobra.Command, args []string) error {
 	for _, r := range agentResults {
 		if r.err != nil {
 			ui.PrintError(fmt.Sprintf("%s — %v", r.name, r.err))
+		} else if r.subagents > 0 {
+			ui.PrintSuccess(fmt.Sprintf("%s — config + %d skills + %d subagents installed", r.name, r.skills, r.subagents))
 		} else {
-			ui.PrintSuccess(fmt.Sprintf("%s — config + %d skills installed", r.name, r.count))
+			ui.PrintSuccess(fmt.Sprintf("%s — config + %d skills installed", r.name, r.skills))
 		}
 	}
 	ui.Pause(300 * time.Millisecond)
 
 	// Step 5: DIRECTION.md
-	directionPath := filepath.Join(rootDir, "DIRECTION.md")
+	directionPath := filepath.Join(rootDir, "docs", "memory", "DIRECTION.md")
 	if _, err := os.Stat(directionPath); os.IsNotExist(err) {
 		fmt.Println()
 		projectType, err := ui.NewProjectTypeSelect()
@@ -262,11 +272,11 @@ func runInit(cmd *cobra.Command, args []string) error {
 	ui.PrintItem("project", rootDir)
 	ui.PrintItem("agents", fmt.Sprintf("%d configured", len(selectedSlugs)))
 	if _, err := os.Stat(directionPath); err == nil {
-		ui.PrintItem("direction", "DIRECTION.md")
+		ui.PrintItem("direction", "docs/memory/DIRECTION.md")
 	}
 	fmt.Println()
 	ui.PrintHeader("next steps")
-	ui.PrintMuted("  1. Review DIRECTION.md and customize for your project")
+	ui.PrintMuted("  1. Review docs/memory/DIRECTION.md and customize for your project")
 	ui.Pause(100 * time.Millisecond)
 	ui.PrintMuted("  2. Run cx doctor to verify setup")
 	ui.Pause(100 * time.Millisecond)
