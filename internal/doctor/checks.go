@@ -247,7 +247,12 @@ func CheckMCPConfig(rootDir string) CheckGroup {
 		group.Results = append(group.Results, CheckResult{
 			Name:     ".mcp.json",
 			Severity: Warning,
-			Message:  ".mcp.json not found",
+			Message:  ".mcp.json not found — run cx init to configure",
+			Fixable:  true,
+			FixLabel: "create .mcp.json with context7 + linear",
+			FixFunc: func() error {
+				return project.WriteMCPConfigs(rootDir, []string{"claude"})
+			},
 		})
 	} else {
 		group.Results = append(group.Results, CheckResult{
@@ -261,7 +266,7 @@ func CheckMCPConfig(rootDir string) CheckGroup {
 		group.Results = append(group.Results, CheckResult{
 			Name:     server + " MCP",
 			Severity: Warning,
-			Message:  fmt.Sprintf("%s MCP server not configured", server),
+			Message:  fmt.Sprintf("%s MCP server not configured in .mcp.json", server),
 		})
 	}
 

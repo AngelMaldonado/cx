@@ -234,21 +234,65 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 	ui.Pause(200 * time.Millisecond)
 
-	// Step 8: MCP check (no spinner — instant read)
-	hasMCP, missing, err := project.CheckMCP(rootDir)
-	if err != nil {
-		ui.PrintWarning(fmt.Sprintf("checking MCP config: %v", err))
+	// Step 8: API keys & MCP servers
+	fmt.Println()
+	ui.PrintHeader("MCP servers")
+
+	// Context7: optional API key for enhanced rate limits
+	creds := project.LoadCredentials()
+	context7Key := project.ResolveKey("CONTEXT7_API_KEY", creds.Context7APIKey)
+
+	if context7Key != "" {
+		ui.PrintSuccess("CONTEXT7_API_KEY found")
 	} else {
-		if !hasMCP {
-			ui.PrintWarning("no .mcp.json found")
+		fmt.Println()
+		c7, _, keyErr := ui.NewAPIKeysForm(true, false)
+		if keyErr != nil {
+			return keyErr
 		}
-		for _, server := range missing {
-			fmt.Println()
-			ui.PrintWarning(fmt.Sprintf("%s MCP server not configured", server))
-			ui.PrintMuted("add this to your .mcp.json:")
-			ui.PrintMuted(project.LinearMCPSnippet())
+		context7Key = c7
+		if c7 != "" {
+			ui.PrintSuccess("CONTEXT7_API_KEY set")
+		} else {
+			ui.PrintMuted("skipped CONTEXT7_API_KEY (context7 works without it)")
 		}
 	}
+
+	if context7Key != "" {
+		creds.Context7APIKey = context7Key
+		if err := project.SaveCredentials(creds); err != nil {
+			ui.PrintWarning(fmt.Sprintf("saving credentials: %v", err))
+		}
+		if err := project.WriteEnvFile(creds); err != nil {
+			ui.PrintWarning(fmt.Sprintf("writing env file: %v", err))
+		}
+	}
+
+	ui.Pause(200 * time.Millisecond)
+
+	ui.Pause(200 * time.Millisecond)
+
+	mcpErr := ui.RunWithSpinner("configuring MCP servers", 600*time.Millisecond, func() error {
+		return project.WriteMCPConfigs(rootDir, selectedSlugs)
+	})
+	if mcpErr != nil {
+		ui.PrintError(fmt.Sprintf("writing MCP configs: %v", mcpErr))
+	} else {
+		for _, slug := range selectedSlugs {
+			agent, _ := agents.BySlug(slug)
+			ui.PrintSuccess(fmt.Sprintf("%s — context7 + linear configured", agent.Name))
+		}
+	}
+
+	if context7Key != "" {
+		fmt.Println()
+		ui.PrintMuted("  CONTEXT7_API_KEY saved to ~/.cx/credentials.json")
+		ui.PrintMuted("  Add to your shell profile: source ~/.cx/env")
+	}
+
+	fmt.Println()
+	ui.PrintWarning("linear requires OAuth — open your agent and follow the in-tool prompts to authenticate")
+	ui.Pause(200 * time.Millisecond)
 
 	// Step 9: First-time preferences (interactive)
 	if isFirstInit {
@@ -271,6 +315,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 	ui.PrintItem("project", rootDir)
 	ui.PrintItem("agents", fmt.Sprintf("%d configured", len(selectedSlugs)))
+	ui.PrintItem("MCP", "context7 + linear")
 	if _, err := os.Stat(directionPath); err == nil {
 		ui.PrintItem("direction", "docs/memory/DIRECTION.md")
 	}

@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
@@ -130,6 +131,38 @@ func NewConfirmPrompt(title string) (bool, error) {
 		return false, handleFormError(err)
 	}
 	return confirmed, nil
+}
+
+func NewAPIKeysForm(needContext7, needLinear bool) (context7Key, linearKey string, err error) {
+	var fields []huh.Field
+
+	if needContext7 {
+		fields = append(fields, huh.NewInput().
+			Title("Context7 API Key").
+			Description("Free at context7.com/dashboard — leave empty to skip").
+			Placeholder("ctx7_xxxxx").
+			Value(&context7Key))
+	}
+	if needLinear {
+		fields = append(fields, huh.NewInput().
+			Title("Linear API Key").
+			Description("Settings → Security & Access → Personal API keys — leave empty to skip").
+			Placeholder("lin_api_xxxxx").
+			Value(&linearKey))
+	}
+
+	if len(fields) == 0 {
+		return "", "", nil
+	}
+
+	form := huh.NewForm(
+		huh.NewGroup(fields...),
+	).WithTheme(CXTheme())
+
+	if err := form.Run(); err != nil {
+		return "", "", handleFormError(err)
+	}
+	return strings.TrimSpace(context7Key), strings.TrimSpace(linearKey), nil
 }
 
 func handleFormError(err error) error {
