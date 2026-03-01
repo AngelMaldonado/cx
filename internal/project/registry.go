@@ -93,6 +93,27 @@ func RegisterProject(absPath string) (bool, error) {
 	return true, nil
 }
 
+func RemoveProject(absPath string) (bool, error) {
+	reg, err := LoadRegistry()
+	if err != nil {
+		return false, err
+	}
+	found := false
+	filtered := reg.Projects[:0]
+	for _, p := range reg.Projects {
+		if p == absPath {
+			found = true
+			continue
+		}
+		filtered = append(filtered, p)
+	}
+	if !found {
+		return false, nil
+	}
+	reg.Projects = filtered
+	return true, SaveRegistry(reg)
+}
+
 func IsFirstEverInit() bool {
 	path, err := registryPath()
 	if err != nil {

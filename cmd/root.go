@@ -33,4 +33,5 @@ func init() {
 	rootCmd.AddCommand(initCmd)
 	rootCmd.AddCommand(doctorCmd)
 	rootCmd.AddCommand(syncCmd)
+	rootCmd.AddCommand(projectsCmd)
 }
