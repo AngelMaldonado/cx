@@ -18,6 +18,9 @@ var rootCmd = &cobra.Command{
 	Version:       Version,
 	SilenceErrors: true,
 	SilenceUsage:  true,
+	CompletionOptions: cobra.CompletionOptions{
+		HiddenDefaultCmd: true,
+	},
 }
 
 func Execute() {
@@ -34,4 +37,8 @@ func init() {
 	rootCmd.AddCommand(doctorCmd)
 	rootCmd.AddCommand(syncCmd)
 	rootCmd.AddCommand(projectsCmd)
+	rootCmd.AddCommand(changeCmd)
+	rootCmd.AddCommand(brainstormCmd)
+	rootCmd.AddCommand(decomposeCmd)
+	rootCmd.AddCommand(completionCmd)
 }

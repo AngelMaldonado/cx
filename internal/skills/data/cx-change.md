@@ -14,10 +14,11 @@ Create and manage structured changes. A change is a set of related modifications
 - Developer wants to update change status
 
 ## Steps
-1. Run `cx change <name>` to create a new change
-2. Fill in proposal.md with the problem statement and proposed solution
-3. Fill in design.md with technical approach
+1. Run `cx change new <name>` to create a new change (scaffolds proposal.md, design.md, tasks.md)
+2. Fill in proposal.md with the problem statement and proposed approach
+3. Fill in design.md with technical architecture and key decisions
 4. Track tasks in tasks.md with Linear issue references
+5. Run `cx change status` to check completion state of active changes
 
 ## Rules
 - Change names must be kebab-case

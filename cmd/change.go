@@ -1,0 +1,117 @@
+package cmd
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/amald/cx/internal/change"
+	"github.com/amald/cx/internal/project"
+	"github.com/amald/cx/internal/ui"
+	"github.com/spf13/cobra"
+)
+
+var changeCmd = &cobra.Command{
+	Use:   "change",
+	Short: "Manage structured changes",
+}
+
+var changeNewCmd = &cobra.Command{
+	Use:   "new <name>",
+	Short: "Create a new change with template files",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runChangeNew,
+}
+
+var changeStatusCmd = &cobra.Command{
+	Use:   "status",
+	Short: "List active changes with completion state",
+	Args:  cobra.NoArgs,
+	RunE:  runChangeStatus,
+}
+
+func init() {
+	changeCmd.AddCommand(changeNewCmd)
+	changeCmd.AddCommand(changeStatusCmd)
+}
+
+func runChangeNew(cmd *cobra.Command, args []string) error {
+	rootDir, err := project.IsGitRepo()
+	if err != nil {
+		ui.PrintError("not a git repository — cx change must be run inside a git repo")
+		return errExitCode1
+	}
+
+	name := args[0]
+	if err := change.Create(rootDir, name); err != nil {
+		ui.PrintError(err.Error())
+		return errExitCode1
+	}
+
+	ui.PrintSuccess(fmt.Sprintf("created docs/changes/%s/", name))
+	ui.PrintMuted("  proposal.md")
+	ui.PrintMuted("  design.md")
+	ui.PrintMuted("  tasks.md")
+	return nil
+}
+
+func runChangeStatus(cmd *cobra.Command, args []string) error {
+	rootDir, err := project.IsGitRepo()
+	if err != nil {
+		ui.PrintError("not a git repository — cx change must be run inside a git repo")
+		return errExitCode1
+	}
+
+	changes, err := change.ListChanges(rootDir)
+	if err != nil {
+		ui.PrintError(fmt.Sprintf("listing changes: %v", err))
+		return errExitCode1
+	}
+
+	if len(changes) == 0 {
+		ui.PrintMuted("no active changes")
+		return nil
+	}
+
+	for _, c := range changes {
+		fmt.Println()
+		ui.PrintHeader(c.Name)
+
+		proposal := fileSymbol(c.HasProposal)
+		design := fileSymbol(c.HasDesign)
+		tasks := fileSymbol(c.HasTasks)
+		fmt.Printf("    %s proposal  %s design  %s tasks\n", proposal, design, tasks)
+
+		if len(c.DeltaSpecs) > 0 {
+			ui.PrintMuted(fmt.Sprintf("Delta specs: %s", strings.Join(c.DeltaSpecs, ", ")))
+		} else {
+			ui.PrintMuted("Delta specs: (none)")
+		}
+
+		var missing []string
+		if !c.HasProposal {
+			missing = append(missing, "proposal.md")
+		}
+		if !c.HasDesign {
+			missing = append(missing, "design.md")
+		}
+		if !c.HasTasks {
+			missing = append(missing, "tasks.md")
+		}
+
+		if len(missing) == 0 {
+			ui.PrintSuccess("Ready to archive")
+		} else {
+			ui.PrintWarning(fmt.Sprintf("Missing: %s", strings.Join(missing, ", ")))
+		}
+	}
+	fmt.Println()
+
+	return nil
+}
+
+func fileSymbol(filled bool) string {
+	if filled {
+		return ui.SymbolSuccess
+	}
+	return "○"
+}

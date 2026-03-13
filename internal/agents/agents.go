@@ -138,20 +138,49 @@ All agents → read skills → call cx commands → read/write docs/
 
 This separation exists so you never pollute your context window with raw file contents. Let the Primer and subagents handle that.
 
-### Your Responsibilities
+### Session Workflow — Follow This Sequence
 
-- **Classify and dispatch**: Choose the right subagent(s) for the task
-- **Memory**: Save observations and decisions via `+"`cx memory`"+` commands during and after work
-- **Change lifecycle**: Manage brainstorm → decompose → implement → archive
+Every session follows the same opening steps. Do not skip or reorder them.
 
-### Dispatch Rules
+**Step 1: Spawn Primer (ALWAYS)**
 
-- **Session start**: spawn Primer (uses cx-prime skill) → receive distilled context
-- **Exploration / onboarding**: dispatch cx-scout (read-only)
-- **Code review / quality gate**: dispatch cx-reviewer (read-only)
-- **Design or planning**: dispatch cx-planner (plan mode)
-- **Implementation**: dispatch cx-worker (full access) — or cx-planner first, then cx-worker
-- **Complex tasks**: dispatch multiple subagents in sequence or parallel
+Before doing anything else, spawn the cx-primer subagent with the developer's opening message. The Primer classifies the session mode (BUILD, CONTINUE, or PLAN) and returns distilled context. Wait for the Primer to return before proceeding.
+
+**Step 2: Dispatch based on mode**
+
+Use the Primer's mode classification to choose the right workflow:
+
+**BUILD mode** (developer wants to create something new):
+1. Spawn cx-planner in **create plan** mode with the task and the Primer's context
+2. The planner explores the codebase, writes a masterfile to `+"`docs/masterfiles/<name>.md`"+`, and returns a brief summary
+3. Present the brief to the developer. Point them to the masterfile for the full plan. Ask if they approve or want changes
+4. **If the developer wants changes**: spawn cx-planner in **iterate plan** mode with the masterfile path and the developer's feedback. The planner updates the masterfile and returns an updated brief. Go back to step 3
+5. **If the developer approves**: run `+"`cx decompose <name>`"+` to create the change structure (scaffolds empty change docs, archives the masterfile)
+6. Spawn cx-planner in **decompose** mode with the change name and archived masterfile path. The planner reads the masterfile, checks existing specs, and fills in proposal.md and design.md
+7. Spawn cx-worker with the change name. The worker reads the change docs and implements the plan
+8. After implementation, spawn cx-reviewer to review the changes
+
+**CONTINUE mode** (developer is resuming existing work):
+1. The Primer returns the active change context (proposal, design, tasks, last session)
+2. Spawn cx-worker with the change name and the context — it picks up where work left off
+3. For complex remaining work, spawn cx-planner first to re-plan, then cx-worker
+
+**PLAN mode** (developer wants to brainstorm/design):
+1. Spawn cx-planner in **create plan** mode — it runs `+"`cx brainstorm new <name>`"+` and fills in the masterfile
+2. Iterate with the developer using cx-planner in **iterate plan** mode (same loop as BUILD steps 3-4)
+3. When the developer approves, run `+"`cx decompose <name>`"+` to scaffold the change and archive the masterfile (same as BUILD steps 5-8)
+
+**Simple tasks** (quick fix, single question, health check):
+- Question about code → spawn cx-scout (read-only)
+- Obvious single-file fix → spawn cx-worker directly (no planner needed, no change needed)
+- Health check → run `+"`cx doctor`"+` yourself
+
+### Key Rules
+
+- **Always Primer first** — never skip context priming, even for "simple" requests
+- **Planner before Worker** for any non-trivial BUILD task — the planner creates the change structure
+- **Never write code yourself** — always delegate to subagents
+- **Save memory** at session end via `+"`cx memory save --type session`"+`
 
 ## Subagents
 
@@ -195,8 +224,9 @@ docs/
 | `+"`cx context --load <resource>`"+` | Load full content of a spec, change, or doc |
 | `+"`cx memory save --type ...`"+` | Save observation, decision, or session summary |
 | `+"`cx search \"query\"`"+` | FTS5 search across all of docs/ |
-| `+"`cx brainstorm <name>`"+` | Create masterfile for ideation |
-| `+"`cx decompose <name>`"+` | Transform masterfile into change structure |
+| `+"`cx brainstorm new <name>`"+` | Create masterfile for ideation |
+| `+"`cx brainstorm status`"+` | List active masterfiles |
+| `+"`cx decompose <name>`"+` | Transform masterfile into change structure, archive masterfile |
 | `+"`cx change new/status/archive`"+` | Manage change lifecycle |
 | `+"`cx doctor`"+` | Validate project health |
 `, agent.Name, subagentTable, skillTable, agent.SkillsDir)
