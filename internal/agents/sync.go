@@ -85,8 +85,7 @@ func configDrifted(rootDir string, agent Agent) bool {
 	// Generate what the config would look like
 	slugs := skills.Slugs()
 	skillTable := buildSkillTable(slugs)
-	subagentTable := buildSubagentTable()
-	expected := generateConfigContent(agent, skillTable, subagentTable)
+	expected := generateConfigContent(agent, skillTable)
 
 	return !bytes.Equal(onDisk, []byte(expected))
 }

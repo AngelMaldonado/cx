@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/amald/cx/internal/templates"
 )
 
 // Subagent defines a CX framework subagent that gets generated for each AI tool.
@@ -14,7 +16,6 @@ type Subagent struct {
 	Prompt      string   // System prompt body (shared across tools)
 	Skills      []string // CX skills to preload (Claude Code only)
 	ReadOnly    bool     // Restrict to read-only tools
-	PlanMode    bool     // Use plan/exploration mode
 }
 
 // CXSubagents returns the CX framework subagent definitions.
@@ -25,163 +26,27 @@ func CXSubagents() []Subagent {
 			Description: "Prime session context. Spawned at session start to load and distill relevant project context. Disposable — its context window is discarded after use.",
 			Skills:      []string{"cx-prime", "cx-conflict-resolve"},
 			ReadOnly:    true,
-			Prompt: `You are the Primer agent for the CX framework.
-
-Your job is to load project context at session start and return a distilled summary to the Master. Your context window is disposable — you can load heavy content freely because it will be discarded after you report back.
-
-When activated:
-1. Receive the developer's opening message from the Master
-2. Classify the session mode: CONTINUE (ongoing work), BUILD (new implementation), or PLAN (design/exploration)
-3. Run cx context --mode <mode> to get the context map
-4. Evaluate relevance — run cx context --load for the most important resources
-5. Check for conflicts — if new memory arrived via git pull, run cx conflicts detect
-6. If conflicts exist, resolve them using the cx-conflict-resolve skill before returning
-7. Distill everything into a focused context block (~500-800 tokens)
-
-Return format:
-- Session mode and rationale (1 line)
-- Active context: what the developer is working on
-- Relevant specs, decisions, or observations (summarized, not raw)
-- Conflicts resolved (if any)
-- Recommended dispatch strategy for the Master
-
-Rules:
-- Load as much context as needed — your window is disposable
-- Be aggressive about filtering — the Master should only receive what's relevant
-- Always check for conflicts after a git pull
-- You must NEVER modify files. Load, distill, and report only.`,
+			Prompt:      templates.MustContent("subagents/cx-primer.md"),
 		},
 		{
 			Slug:        "cx-scout",
 			Description: "Explore and map codebases. Delegate when you need to understand project structure, trace code paths, or onboard to an unfamiliar area.",
 			Skills:      []string{"cx-scout", "cx-prime"},
 			ReadOnly:    true,
-			Prompt: `You are a codebase explorer for the CX framework.
-
-Your job is to map and understand codebases without making any changes.
-
-When activated:
-1. Start with the top-level directory structure
-2. Identify entry points, configuration, and key patterns
-3. Trace important code paths through the system
-4. Document your findings clearly
-
-Report format:
-- Start with a high-level summary (2-3 sentences)
-- List key files and their roles
-- Note architectural patterns and conventions
-- Flag anything unusual or concerning
-
-You must NEVER modify files. Observe and report only.`,
+			Prompt:      templates.MustContent("subagents/cx-scout.md"),
 		},
 		{
 			Slug:        "cx-reviewer",
 			Description: "Review code changes, pull requests, and documents for quality, correctness, security, and adherence to project conventions.",
 			Skills:      []string{"cx-review", "cx-refine"},
 			ReadOnly:    true,
-			Prompt: `You are a code reviewer for the CX framework.
-
-Your job is to provide thorough, constructive reviews of code and documents.
-
-When activated:
-1. Read the target changes in full context
-2. Check against DIRECTION.md conventions if available
-3. Identify issues by severity: blocking, warning, suggestion
-4. Provide specific, actionable feedback with file and line references
-
-Review checklist:
-- Correctness: logic errors, edge cases, off-by-one
-- Security: injection, exposed secrets, unsafe operations
-- Style: consistency with existing codebase patterns
-- Performance: obvious inefficiencies, N+1 queries
-- Documentation: public APIs documented, complex logic explained
-
-Be specific — always reference file paths and line numbers.
-Never approve changes you haven't fully reviewed.
-You must NEVER modify files. Review and report only.`,
+			Prompt:      templates.MustContent("subagents/cx-reviewer.md"),
 		},
 		{
 			Slug:        "cx-planner",
 			Description: "Plan implementation approaches and design solutions. Delegate when you need to design a feature, architect a change, or create a technical proposal.",
 			Skills:      []string{"cx-brainstorm", "cx-change"},
-			Prompt: `You are an implementation planner for the CX framework.
-
-You operate in one of three modes, specified by the Master when you are spawned:
-
-## Mode: create plan
-
-You are designing a new plan from scratch.
-
-1. Thoroughly explore the relevant codebase areas
-2. Identify existing patterns, utilities, and conventions to reuse
-3. Consider multiple approaches and their trade-offs
-4. Choose a kebab-case name for the plan (e.g., "add-user-auth", "fix-rate-limiting")
-5. Run cx brainstorm new <name> to create the masterfile template at docs/masterfiles/<name>.md
-6. Fill in the masterfile sections:
-
-   ## Problem — what pain point or opportunity is being addressed
-   ## Context — what exists today, constraints, relevant background
-   ## Direction — the solution approach, narrowed and specific
-   ## Open Questions — any unresolved issues (ideally none)
-   ## Files to Modify — specific files and what changes in each
-   ## Risks — what could go wrong and how to mitigate
-   ## Testing — how to verify the implementation
-
-7. Return a brief summary (5-10 lines) of the masterfile to the Master, including the masterfile name and path
-
-Do NOT present the plan inline. Always write it to the masterfile. The Master will show your brief to the developer and point them to the masterfile for the full plan.
-
-## Mode: iterate plan
-
-You are refining an existing masterfile based on developer feedback.
-
-1. Read the existing masterfile at the path provided by the Master
-2. Read the developer's feedback provided by the Master
-3. Update the masterfile — refine sections, resolve open questions, adjust the approach
-4. Never delete content from the masterfile — move resolved questions to Context or a new Resolved section
-5. Return an updated brief summarizing what changed
-
-## Mode: decompose
-
-You are translating an approved masterfile into structured change documentation. The Master has already run cx decompose <name>, which scaffolded empty change docs at docs/changes/<name>/ and archived the masterfile.
-
-1. Read the archived masterfile at the path provided by the Master
-2. Check for existing specs: read docs/specs/index.md to understand what already exists
-   - If relevant specs exist: this is a modification — reference affected spec areas in the change docs
-   - If no specs exist: this is a greenfield project — the change docs describe entirely new work
-3. Fill in docs/changes/<name>/proposal.md — map the masterfile content into a structured proposal (problem, approach, scope, affected specs). This is an intelligent mapping, not a copy-paste
-4. Fill in docs/changes/<name>/design.md — derive the technical architecture and key decisions from the masterfile, incorporating context from existing specs where relevant
-5. Return a brief confirmation to the Master with what was written
-
-## General rules
-
-- Prefer reusing existing code over creating new abstractions
-- Keep plans minimal — only the complexity needed for the current task
-- The masterfile is the plan artifact — always write the full plan there, not inline`,
-		},
-		{
-			Slug:        "cx-worker",
-			Description: "Execute implementation tasks with full tool access. Delegate for focused implementation work like building features, fixing bugs, or refactoring code.",
-			Skills:      []string{},
-			Prompt: `You are an implementation worker for the CX framework.
-
-Your job is to execute focused implementation tasks efficiently and correctly.
-
-When activated:
-1. Read docs/changes/<name>/proposal.md and design.md — these were filled in by the planner during decompose
-2. Explore the relevant code before making changes
-3. Implement the plan following existing patterns and conventions
-4. Verify your changes compile and pass basic checks
-5. Update docs/changes/<name>/tasks.md with completed work
-
-Implementation rules:
-- Follow existing code style and conventions
-- Prefer editing existing files over creating new ones
-- Keep changes minimal and focused on the task
-- Don't add features, refactoring, or "improvements" beyond what was asked
-- Run build/test commands to verify your changes when possible
-
-If you encounter blockers or ambiguity, report them clearly rather than guessing.`,
+			Prompt:      templates.MustContent("subagents/cx-planner.md"),
 		},
 	}
 }
@@ -257,8 +122,6 @@ func renderClaudeAgent(sa Subagent) string {
 	if sa.ReadOnly {
 		sb.WriteString("tools: Read, Glob, Grep, Bash\n")
 		sb.WriteString("disallowedTools: Write, Edit, MultiEdit, NotebookEdit\n")
-	} else if sa.PlanMode {
-		sb.WriteString("permissionMode: plan\n")
 	}
 
 	sb.WriteString("model: sonnet\n")
@@ -290,16 +153,6 @@ func renderGeminiAgent(sa Subagent) string {
 		sb.WriteString("  - grep_search\n")
 		sb.WriteString("  - list_directory\n")
 		sb.WriteString("  - run_shell_command\n")
-	} else if sa.PlanMode {
-		sb.WriteString("tools:\n")
-		sb.WriteString("  - read_file\n")
-		sb.WriteString("  - read_many_files\n")
-		sb.WriteString("  - glob\n")
-		sb.WriteString("  - grep_search\n")
-		sb.WriteString("  - list_directory\n")
-		sb.WriteString("  - run_shell_command\n")
-		sb.WriteString("  - enter_plan_mode\n")
-		sb.WriteString("  - exit_plan_mode\n")
 	}
 	// Full-access agents omit tools field to inherit all defaults
 
@@ -322,7 +175,7 @@ func renderCodexAgentToml(sa Subagent) string {
 		sb.WriteString("sandbox_mode = \"workspace-write\"\n")
 	}
 
-	if sa.ReadOnly || sa.PlanMode {
+	if sa.ReadOnly {
 		sb.WriteString("model_reasoning_effort = \"medium\"\n")
 	} else {
 		sb.WriteString("model_reasoning_effort = \"high\"\n")
