@@ -126,7 +126,7 @@ func runChangeArchive(cmd *cobra.Command, args []string) error {
 	}
 
 	name := args[0]
-	result, err := change.Archive(rootDir, name)
+	result, err := change.Archive(rootDir, name, change.ArchiveOptions{})
 	if err != nil {
 		ui.PrintError(err.Error())
 		return errExitCode1

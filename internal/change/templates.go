@@ -32,6 +32,11 @@ func DeltaSpecTemplate(name, area string) string {
 	return strings.ReplaceAll(result, "{{area}}", area)
 }
 
+func VerifyTemplate(name string) string {
+	tmpl := templates.MustContent("docs/verify.md")
+	return strings.ReplaceAll(tmpl, "{{name}}", name)
+}
+
 func ConfigTemplate() string {
 	return templates.MustContent("docs/cx.yaml")
 }
