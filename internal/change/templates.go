@@ -31,3 +31,7 @@ func DeltaSpecTemplate(name, area string) string {
 	result := strings.ReplaceAll(tmpl, "{{name}}", name)
 	return strings.ReplaceAll(result, "{{area}}", area)
 }
+
+func ConfigTemplate() string {
+	return templates.MustContent("docs/cx.yaml")
+}

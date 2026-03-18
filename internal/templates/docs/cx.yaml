@@ -1,0 +1,27 @@
+# CX Project Configuration
+# This file is created by `cx init` and read by agents for project context.
+
+# Schema version
+schema: cx/v1
+
+# Project context injected into all artifact generation.
+# Describe your tech stack, conventions, and constraints here.
+# Agents receive this context when creating proposals, designs, specs, etc.
+context: |
+  # Tech stack, conventions, constraints
+  # Example:
+  #   Language: Go 1.22
+  #   Framework: Cobra CLI
+  #   Database: PostgreSQL
+  #   Testing: go test with testify
+
+# Per-artifact rules. Only injected when creating the matching artifact type.
+# Keys must match artifact types: proposal, design, tasks, specs, delta-spec, verify
+rules:
+  # proposal:
+  #   - Include rollback plan for breaking changes
+  # specs:
+  #   - Use Given/When/Then format for scenarios
+  #   - Reference requirements by REQ-NNN identifiers
+  # design:
+  #   - Include sequence diagrams for cross-service flows

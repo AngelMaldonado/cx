@@ -32,14 +32,14 @@ func runSync(cmd *cobra.Command, args []string) error {
 
 	// Step 2: Scaffold docs/ + .cx/ (fill gaps)
 	var scaffoldResult *project.ScaffoldResult
-	var cxCreated bool
+	var cxResult *project.CXCacheResult
 	scaffoldErr := ui.RunWithSpinner("checking project structure", 500*time.Millisecond, func() error {
 		var err error
 		scaffoldResult, err = project.ScaffoldDocs(rootDir)
 		if err != nil {
 			return err
 		}
-		cxCreated, err = project.ScaffoldCXCache(rootDir)
+		cxResult, err = project.ScaffoldCXCache(rootDir)
 		return err
 	})
 	if scaffoldErr != nil {
@@ -49,10 +49,13 @@ func runSync(cmd *cobra.Command, args []string) error {
 	for _, f := range scaffoldResult.Created {
 		ui.PrintSuccess(fmt.Sprintf("created %s", f))
 	}
-	if cxCreated {
+	if cxResult.DirCreated {
 		ui.PrintSuccess("created .cx/")
 	}
-	if len(scaffoldResult.Created) == 0 && !cxCreated {
+	if cxResult.ConfigCreated {
+		ui.PrintSuccess("created .cx/cx.yaml")
+	}
+	if len(scaffoldResult.Created) == 0 && !cxResult.DirCreated && !cxResult.ConfigCreated {
 		ui.PrintMuted("project structure up to date")
 	}
 	ui.Pause(200 * time.Millisecond)

@@ -59,20 +59,25 @@ func runInit(cmd *cobra.Command, args []string) error {
 	ui.Pause(200 * time.Millisecond)
 
 	// Step 3: Scaffold .cx/
-	var cxCreated bool
+	var cxResult *project.CXCacheResult
 	cxErr := ui.RunWithSpinner("preparing .cx/", 400*time.Millisecond, func() error {
 		var err error
-		cxCreated, err = project.ScaffoldCXCache(rootDir)
+		cxResult, err = project.ScaffoldCXCache(rootDir)
 		return err
 	})
 	if cxErr != nil {
 		ui.PrintError(fmt.Sprintf("scaffolding .cx: %v", cxErr))
 		return cxErr
 	}
-	if cxCreated {
+	if cxResult.DirCreated {
 		ui.PrintSuccess("created .cx/")
 	} else {
 		ui.PrintMuted("skipped .cx/ (exists)")
+	}
+	if cxResult.ConfigCreated {
+		ui.PrintSuccess("created .cx/cx.yaml")
+	} else if cxResult.ConfigSkipped {
+		ui.PrintMuted("skipped .cx/cx.yaml (exists)")
 	}
 	ui.Pause(300 * time.Millisecond)
 

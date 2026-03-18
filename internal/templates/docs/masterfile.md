@@ -1,4 +1,7 @@
-# Masterfile: {{name}}
+---
+name: {{name}}
+type: masterfile
+---
 
 ## Problem
 <what pain point or opportunity is being addressed>

@@ -1,4 +1,7 @@
-# Tasks: {{name}}
+---
+name: {{name}}
+type: tasks
+---
 
 ## Linear Issues
 - PROJ-100: <task description>

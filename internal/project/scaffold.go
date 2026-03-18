@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/amald/cx/internal/templates"
 )
 
 type ScaffoldResult struct {
@@ -56,25 +58,42 @@ func ScaffoldDocs(rootDir string) (*ScaffoldResult, error) {
 	return result, nil
 }
 
-func ScaffoldCXCache(rootDir string) (bool, error) {
+type CXCacheResult struct {
+	DirCreated      bool
+	ConfigCreated   bool
+	ConfigSkipped   bool
+}
+
+func ScaffoldCXCache(rootDir string) (*CXCacheResult, error) {
+	result := &CXCacheResult{}
 	cxDir := filepath.Join(rootDir, ".cx")
-	created := false
 
 	if _, err := os.Stat(cxDir); os.IsNotExist(err) {
 		if err := os.MkdirAll(cxDir, 0o755); err != nil {
-			return false, fmt.Errorf("creating .cx/: %w", err)
+			return nil, fmt.Errorf("creating .cx/: %w", err)
 		}
-		created = true
+		result.DirCreated = true
 	}
 
 	gitignore := filepath.Join(cxDir, ".gitignore")
 	if _, err := os.Stat(gitignore); os.IsNotExist(err) {
 		if err := atomicWrite(gitignore, []byte("*\n")); err != nil {
-			return created, fmt.Errorf("writing .cx/.gitignore: %w", err)
+			return result, fmt.Errorf("writing .cx/.gitignore: %w", err)
 		}
 	}
 
-	return created, nil
+	cxYAML := filepath.Join(cxDir, "cx.yaml")
+	if _, err := os.Stat(cxYAML); os.IsNotExist(err) {
+		content := templates.MustContent("docs/cx.yaml")
+		if err := atomicWrite(cxYAML, []byte(content)); err != nil {
+			return result, fmt.Errorf("writing .cx/cx.yaml: %w", err)
+		}
+		result.ConfigCreated = true
+	} else {
+		result.ConfigSkipped = true
+	}
+
+	return result, nil
 }
 
 func atomicWrite(path string, data []byte) error {

@@ -1,4 +1,7 @@
-# Design: {{name}}
+---
+name: {{name}}
+type: design
+---
 
 ## Architecture
 <how the solution fits into the existing system — components, data flow, interfaces>

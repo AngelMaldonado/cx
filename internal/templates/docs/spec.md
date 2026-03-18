@@ -1,7 +1,18 @@
-# Spec: {{name}}
+---
+name: {{name}}
+type: spec
+---
 
-## Overview
+## Purpose
+<what this specification covers and why it exists>
 
 ## Requirements
 
-## Behavior
+### REQ-001: <requirement name>
+The system MUST <behavior>.
+
+### REQ-002: <requirement name>
+The system SHOULD <behavior>.
+
+## Scenarios
+<optional — see scenarios.md for Given/When/Then format>

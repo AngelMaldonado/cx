@@ -1,4 +1,7 @@
-# Proposal: {{name}}
+---
+name: {{name}}
+type: proposal
+---
 
 ## Problem
 <what's wrong or missing — the pain that motivates this change>
@@ -10,4 +13,4 @@
 <what's in scope and what's explicitly out of scope>
 
 ## Affected Specs
-<which spec areas will have deltas — e.g., gas-monitoring, device-communication>
+<which spec areas will have deltas — e.g., auth, payments, notifications>

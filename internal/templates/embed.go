@@ -2,7 +2,7 @@ package templates
 
 import "embed"
 
-//go:embed agents/*.md subagents/*.md docs/*.md
+//go:embed agents/*.md subagents/*.md docs/*.md docs/*.yaml
 var FS embed.FS
 
 // Content reads a template file and returns its content as a string.
