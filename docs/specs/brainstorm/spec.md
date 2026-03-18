@@ -49,7 +49,16 @@ Committed to git so the team can see what's being ideated on.
 - <question 2>
 
 ## Observations
-<things discovered during brainstorming — constraints, risks, related work>
+<discoveries, resolved questions, and notes gathered during brainstorming>
+
+## Files to Modify
+<specific files and what changes in each>
+
+## Risks
+<what could go wrong and how to mitigate>
+
+## Testing
+<how to verify the implementation>
 
 ## References
 <links to specs, external docs, prior art>
@@ -117,12 +126,15 @@ cx decompose <name>
 
 The binary maps masterfile sections to proposal sections:
 
-| Masterfile section | Proposal section |
-|-------------------|-----------------|
-| `## Problem` | `## Problem` (copied verbatim) |
-| `## Direction` | `## Approach` (copied as starting point) |
-| `## Context` | Added to `## Scope` as context |
-| `## Observations` | Added to proposal as an appendix |
+| Masterfile section | Downstream document |
+|-------------------|---------------------|
+| `## Problem` | `proposal.md` → `## Problem` (copied verbatim) |
+| `## Direction` | `proposal.md` → `## Approach` (copied as starting point) |
+| `## Context` | `proposal.md` → `## Scope` (added as context) |
+| `## Observations` | `proposal.md` → appended as an appendix |
+| `## Files to Modify` | `design.md` → `## Files to Modify` |
+| `## Risks` | `design.md` → `## Risks` |
+| `## Testing` | `tasks.md` → `## Testing` |
 
 The agent is expected to refine the proposal further — the pre-fill is a starting point, not the final version.
 

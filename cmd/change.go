@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/amald/cx/internal/change"
 	"github.com/amald/cx/internal/project"
@@ -29,9 +30,17 @@ var changeStatusCmd = &cobra.Command{
 	RunE:  runChangeStatus,
 }
 
+var changeArchiveCmd = &cobra.Command{
+	Use:   "archive <name>",
+	Short: "Archive a completed change",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runChangeArchive,
+}
+
 func init() {
 	changeCmd.AddCommand(changeNewCmd)
 	changeCmd.AddCommand(changeStatusCmd)
+	changeCmd.AddCommand(changeArchiveCmd)
 }
 
 func runChangeNew(cmd *cobra.Command, args []string) error {
@@ -106,6 +115,24 @@ func runChangeStatus(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Println()
 
+	return nil
+}
+
+func runChangeArchive(cmd *cobra.Command, args []string) error {
+	rootDir, err := project.IsGitRepo()
+	if err != nil {
+		ui.PrintError("not a git repository — cx change must be run inside a git repo")
+		return errExitCode1
+	}
+
+	name := args[0]
+	if err := change.Archive(rootDir, name); err != nil {
+		ui.PrintError(err.Error())
+		return errExitCode1
+	}
+
+	date := time.Now().Format("2006-01-02")
+	ui.PrintSuccess(fmt.Sprintf("archived %s → docs/archive/%s-%s/", name, date, name))
 	return nil
 }
 

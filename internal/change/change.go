@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 )
 
 var namePattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
@@ -96,6 +97,46 @@ func ListChanges(rootDir string) ([]ChangeInfo, error) {
 	})
 
 	return changes, nil
+}
+
+func Archive(rootDir, name string) error {
+	changesDir := filepath.Join(rootDir, "docs", "changes", name)
+	if _, err := os.Stat(changesDir); os.IsNotExist(err) {
+		return fmt.Errorf("change %q does not exist", name)
+	}
+
+	info := ChangeInfo{
+		Name:        name,
+		Path:        changesDir,
+		HasProposal: fileModified(changesDir, "proposal.md", ProposalTemplate(name)),
+		HasDesign:   fileModified(changesDir, "design.md", DesignTemplate(name)),
+		HasTasks:    fileModified(changesDir, "tasks.md", TasksTemplate(name)),
+	}
+
+	var missing []string
+	if !info.HasProposal {
+		missing = append(missing, "proposal.md")
+	}
+	if !info.HasDesign {
+		missing = append(missing, "design.md")
+	}
+	if !info.HasTasks {
+		missing = append(missing, "tasks.md")
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("change %q is incomplete — missing: %s", name, strings.Join(missing, ", "))
+	}
+
+	date := time.Now().Format("2006-01-02")
+	archiveDir := filepath.Join(rootDir, "docs", "archive", date+"-"+name)
+	if err := os.MkdirAll(filepath.Dir(archiveDir), 0o755); err != nil {
+		return fmt.Errorf("creating archive directory: %w", err)
+	}
+	if err := os.Rename(changesDir, archiveDir); err != nil {
+		return fmt.Errorf("archiving change: %w", err)
+	}
+
+	return nil
 }
 
 func fileModified(dir, filename, template string) bool {

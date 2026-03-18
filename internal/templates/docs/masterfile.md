@@ -13,6 +13,9 @@
 - <question 1>
 - <question 2>
 
+## Observations
+<discoveries, resolved questions, and notes gathered during brainstorming>
+
 ## Files to Modify
 <specific files and what changes in each>
 
