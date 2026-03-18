@@ -51,6 +51,11 @@ func Create(rootDir, name string) error {
 		}
 	}
 
+	specsDir := filepath.Join(dir, "specs")
+	if err := os.MkdirAll(specsDir, 0o755); err != nil {
+		return fmt.Errorf("creating specs directory: %w", err)
+	}
+
 	return nil
 }
 
@@ -99,10 +104,15 @@ func ListChanges(rootDir string) ([]ChangeInfo, error) {
 	return changes, nil
 }
 
-func Archive(rootDir, name string) error {
+type ArchiveResult struct {
+	ArchivePath       string
+	BootstrappedSpecs []string
+}
+
+func Archive(rootDir, name string) (*ArchiveResult, error) {
 	changesDir := filepath.Join(rootDir, "docs", "changes", name)
 	if _, err := os.Stat(changesDir); os.IsNotExist(err) {
-		return fmt.Errorf("change %q does not exist", name)
+		return nil, fmt.Errorf("change %q does not exist", name)
 	}
 
 	info := ChangeInfo{
@@ -124,19 +134,47 @@ func Archive(rootDir, name string) error {
 		missing = append(missing, "tasks.md")
 	}
 	if len(missing) > 0 {
-		return fmt.Errorf("change %q is incomplete — missing: %s", name, strings.Join(missing, ", "))
+		return nil, fmt.Errorf("change %q is incomplete — missing: %s", name, strings.Join(missing, ", "))
 	}
 
+	// Bootstrap missing canonical specs
+	var bootstrapped []string
+	deltaSpecsDir := filepath.Join(changesDir, "specs")
+	if entries, err := os.ReadDir(deltaSpecsDir); err == nil {
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+			area := entry.Name()
+			canonicalSpec := filepath.Join(rootDir, "docs", "specs", area, "spec.md")
+			if _, err := os.Stat(canonicalSpec); os.IsNotExist(err) {
+				if err := os.MkdirAll(filepath.Dir(canonicalSpec), 0o755); err != nil {
+					return nil, fmt.Errorf("creating spec directory for %s: %w", area, err)
+				}
+				if err := atomicWrite(canonicalSpec, []byte(SpecTemplate(area))); err != nil {
+					return nil, fmt.Errorf("writing spec scaffold for %s: %w", area, err)
+				}
+				bootstrapped = append(bootstrapped, area)
+			}
+		}
+		sort.Strings(bootstrapped)
+	}
+
+	// Move to archive
 	date := time.Now().Format("2006-01-02")
-	archiveDir := filepath.Join(rootDir, "docs", "archive", date+"-"+name)
+	archivePath := filepath.Join("docs", "archive", date+"-"+name)
+	archiveDir := filepath.Join(rootDir, archivePath)
 	if err := os.MkdirAll(filepath.Dir(archiveDir), 0o755); err != nil {
-		return fmt.Errorf("creating archive directory: %w", err)
+		return nil, fmt.Errorf("creating archive directory: %w", err)
 	}
 	if err := os.Rename(changesDir, archiveDir); err != nil {
-		return fmt.Errorf("archiving change: %w", err)
+		return nil, fmt.Errorf("archiving change: %w", err)
 	}
 
-	return nil
+	return &ArchiveResult{
+		ArchivePath:       archivePath,
+		BootstrappedSpecs: bootstrapped,
+	}, nil
 }
 
 func fileModified(dir, filename, template string) bool {

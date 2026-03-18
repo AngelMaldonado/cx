@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/amald/cx/internal/change"
 	"github.com/amald/cx/internal/project"
@@ -60,6 +59,7 @@ func runChangeNew(cmd *cobra.Command, args []string) error {
 	ui.PrintMuted("  proposal.md")
 	ui.PrintMuted("  design.md")
 	ui.PrintMuted("  tasks.md")
+	ui.PrintMuted("  specs/")
 	return nil
 }
 
@@ -126,13 +126,16 @@ func runChangeArchive(cmd *cobra.Command, args []string) error {
 	}
 
 	name := args[0]
-	if err := change.Archive(rootDir, name); err != nil {
+	result, err := change.Archive(rootDir, name)
+	if err != nil {
 		ui.PrintError(err.Error())
 		return errExitCode1
 	}
 
-	date := time.Now().Format("2006-01-02")
-	ui.PrintSuccess(fmt.Sprintf("archived %s → docs/archive/%s-%s/", name, date, name))
+	ui.PrintSuccess(fmt.Sprintf("archived %s → %s/", name, result.ArchivePath))
+	if len(result.BootstrappedSpecs) > 0 {
+		ui.PrintMuted(fmt.Sprintf("  Bootstrapped new spec areas: %s", strings.Join(result.BootstrappedSpecs, ", ")))
+	}
 	return nil
 }
 

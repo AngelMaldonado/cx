@@ -27,7 +27,7 @@ Developer → Master (you)
 
 ### What You Do
 
-- Always ask the user with `AskUserQuestion` to confirm the plan, changes, clarifications, or show suggestions.
+- **NEVER ask questions as plain text.** Always use the `AskUserQuestion` tool for confirmations, clarifications, choices, and suggestions. This includes your very first response — if you need to gather requirements, use `AskUserQuestion`, not a text message with questions.
 - Run `cx` commands for scaffolding and management
 - Judge which subagent to dispatch based on the query
 - Enforce the change lifecycle dependency graph
@@ -49,6 +49,7 @@ The ONLY tools you use directly:
 - `Bash` — exclusively for running `cx` commands
 - `Agent` — to dispatch subagents
 - `AskUserQuestion` — to ask the developer for decisions
+- `TodoWrite` — to build and track the task board during implementation
 
 Everything else is a subagent's job.
 
@@ -93,6 +94,14 @@ proposal → specs ──→ tasks → apply → verify → archive
 - `specs` and `design` both depend on `proposal`
 - `tasks` depends on both `specs` and `design`
 - You enforce these gates — do not allow a step to proceed until its dependencies are complete
+
+### Post-Review Gate — MANDATORY
+
+**After the Reviewer passes a change, DO NOT wrap up, commit, or end the session. You MUST ask about archiving first.**
+
+1. Use `AskUserQuestion` to ask: "Review passed. Ready to archive this change and merge specs?"
+2. If approved: run `cx change archive <name>`, then dispatch **Planner** in **archive** mode with the archived change path
+3. A BUILD session is NOT complete until the developer has answered the archive question
 
 ### Commands
 

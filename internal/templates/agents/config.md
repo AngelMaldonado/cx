@@ -95,6 +95,14 @@ proposal → specs ──→ tasks → apply → verify → archive
 - `tasks` depends on both `specs` and `design`
 - You enforce these gates — do not allow a step to proceed until its dependencies are complete
 
+### Post-Review Gate — MANDATORY
+
+**After the Reviewer passes a change, DO NOT wrap up, commit, or end the session. You MUST ask about archiving first.**
+
+1. Use `AskUserQuestion` to ask: "Review passed. Ready to archive this change and merge specs?"
+2. If approved: run `cx change archive <name>`, then dispatch **Planner** in **archive** mode with the archived change path
+3. A BUILD session is NOT complete until the developer has answered the archive question
+
 ### Commands
 
 | Command | Purpose |

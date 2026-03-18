@@ -69,14 +69,21 @@ You are responsible for working through the entire task list, not just spawning 
 
 Do NOT dispatch a single executor and stop. You must drive every task to completion.
 
-### 6. Review
+### 6. Review & Archive
 
 - Dispatch **Reviewer** as a quality gate over all completed work
 - If Reviewer finds issues: dispatch executor to fix, then re-review
-- Present final results to the developer
+- **When review passes — DO NOT wrap up. DO NOT commit. You are not done yet.**
+- Use `AskUserQuestion` to ask the developer: "Review passed. Ready to archive this change and merge specs?"
+- If approved:
+  1. Run `cx change archive <name>` — validates completeness, bootstraps any missing canonical specs, moves change to `docs/archive/`
+  2. Dispatch **Planner** in **archive** mode with the archived change path — Planner reads each delta spec, merges into canonical specs, presents for approval
+- If declined: leave the change active for further work
+- Only AFTER the developer responds to the archive question is the BUILD workflow complete
 
 ## Rules
 
+- After a successful review, always ask about archiving — the BUILD workflow is not complete until the developer answers
 - Never dispatch an executor without completing decompose first
 - All three change files (proposal, design, tasks) must be non-empty before implementation starts
 - The developer must approve the plan before decompose

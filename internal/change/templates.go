@@ -20,3 +20,14 @@ func TasksTemplate(name string) string {
 	tmpl := templates.MustContent("docs/tasks.md")
 	return strings.ReplaceAll(tmpl, "{{name}}", name)
 }
+
+func SpecTemplate(area string) string {
+	tmpl := templates.MustContent("docs/spec.md")
+	return strings.ReplaceAll(tmpl, "{{name}}", area)
+}
+
+func DeltaSpecTemplate(name, area string) string {
+	tmpl := templates.MustContent("docs/delta-spec.md")
+	result := strings.ReplaceAll(tmpl, "{{name}}", name)
+	return strings.ReplaceAll(result, "{{area}}", area)
+}
