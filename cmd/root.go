@@ -41,4 +41,5 @@ func init() {
 	rootCmd.AddCommand(brainstormCmd)
 	rootCmd.AddCommand(decomposeCmd)
 	rootCmd.AddCommand(completionCmd)
+	rootCmd.AddCommand(instructionsCmd)
 }

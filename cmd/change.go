@@ -7,6 +7,7 @@ import (
 	"github.com/amald/cx/internal/change"
 	"github.com/amald/cx/internal/project"
 	"github.com/amald/cx/internal/ui"
+	"github.com/amald/cx/internal/verify"
 	"github.com/spf13/cobra"
 )
 
@@ -36,10 +37,29 @@ var changeArchiveCmd = &cobra.Command{
 	RunE:  runChangeArchive,
 }
 
+var changeVerifyCmd = &cobra.Command{
+	Use:   "verify <name>",
+	Short: "Scaffold verification prompt for a change",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runChangeVerify,
+}
+
+var changeSpecSyncCmd = &cobra.Command{
+	Use:   "spec-sync <name>",
+	Short: "Merge delta specs into canonical specs without archiving",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runChangeSpecSync,
+}
+
+var skipSpecsFlag bool
+
 func init() {
 	changeCmd.AddCommand(changeNewCmd)
 	changeCmd.AddCommand(changeStatusCmd)
 	changeCmd.AddCommand(changeArchiveCmd)
+	changeCmd.AddCommand(changeVerifyCmd)
+	changeCmd.AddCommand(changeSpecSyncCmd)
+	changeArchiveCmd.Flags().BoolVar(&skipSpecsFlag, "skip-specs", false, "Skip spec verification (for non-behavioral changes)")
 }
 
 func runChangeNew(cmd *cobra.Command, args []string) error {
@@ -89,9 +109,22 @@ func runChangeStatus(cmd *cobra.Command, args []string) error {
 		design := fileSymbol(c.HasDesign)
 		tasks := fileSymbol(c.HasTasks)
 		fmt.Printf("    %s proposal  %s design  %s tasks\n", proposal, design, tasks)
+		fmt.Printf("    verify: %s\n", c.VerifyStatus)
 
 		if len(c.DeltaSpecs) > 0 {
-			ui.PrintMuted(fmt.Sprintf("Delta specs: %s", strings.Join(c.DeltaSpecs, ", ")))
+			var specLabels []string
+			syncedSet := make(map[string]bool)
+			for _, s := range c.SyncedDeltas {
+				syncedSet[s] = true
+			}
+			for _, d := range c.DeltaSpecs {
+				if syncedSet[d] {
+					specLabels = append(specLabels, d+" [synced]")
+				} else {
+					specLabels = append(specLabels, d)
+				}
+			}
+			ui.PrintMuted(fmt.Sprintf("Delta specs: %s", strings.Join(specLabels, ", ")))
 		} else {
 			ui.PrintMuted("Delta specs: (none)")
 		}
@@ -126,7 +159,8 @@ func runChangeArchive(cmd *cobra.Command, args []string) error {
 	}
 
 	name := args[0]
-	result, err := change.Archive(rootDir, name, change.ArchiveOptions{})
+	opts := change.ArchiveOptions{SkipSpecs: skipSpecsFlag}
+	result, err := change.Archive(rootDir, name, opts)
 	if err != nil {
 		ui.PrintError(err.Error())
 		return errExitCode1
@@ -136,6 +170,53 @@ func runChangeArchive(cmd *cobra.Command, args []string) error {
 	if len(result.BootstrappedSpecs) > 0 {
 		ui.PrintMuted(fmt.Sprintf("  Bootstrapped new spec areas: %s", strings.Join(result.BootstrappedSpecs, ", ")))
 	}
+	if skipSpecsFlag {
+		ui.PrintMuted("  skipped spec verification (--skip-specs)")
+	}
+	return nil
+}
+
+func runChangeVerify(cmd *cobra.Command, args []string) error {
+	rootDir, err := project.IsGitRepo()
+	if err != nil {
+		ui.PrintError("not a git repository — cx change must be run inside a git repo")
+		return errExitCode1
+	}
+
+	name := args[0]
+	prompt, err := verify.BuildPrompt(rootDir, name)
+	if err != nil {
+		ui.PrintError(err.Error())
+		return errExitCode1
+	}
+
+	fmt.Print(prompt)
+
+	if err := verify.Record(rootDir, name); err != nil {
+		ui.PrintError(err.Error())
+		return errExitCode1
+	}
+
+	ui.PrintMuted(fmt.Sprintf("verify.md created at docs/changes/%s/verify.md", name))
+	return nil
+}
+
+func runChangeSpecSync(cmd *cobra.Command, args []string) error {
+	rootDir, err := project.IsGitRepo()
+	if err != nil {
+		ui.PrintError("not a git repository — cx change must be run inside a git repo")
+		return errExitCode1
+	}
+
+	name := args[0]
+	result, err := change.SpecSync(rootDir, name)
+	if err != nil {
+		ui.PrintError(err.Error())
+		return errExitCode1
+	}
+
+	fmt.Print(result.Prompt)
+	ui.PrintSuccess(fmt.Sprintf("spec-sync ready — %d unsynced delta(s): %s", len(result.Areas), strings.Join(result.Areas, ", ")))
 	return nil
 }
 
