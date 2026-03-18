@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/amald/cx/internal/agents"
+	"github.com/amald/cx/internal/config"
 	"github.com/amald/cx/internal/project"
 )
 
@@ -128,6 +129,26 @@ func CheckDocsStructure(rootDir string) CheckGroup {
 			Severity: Pass,
 			Message:  "docs/memory/DIRECTION.md exists",
 		})
+	}
+
+	// Check cx.yaml if present (optional)
+	cxYamlPath := filepath.Join(rootDir, ".cx", "cx.yaml")
+	if _, statErr := os.Stat(cxYamlPath); statErr == nil {
+		_, loadErr := config.Load(rootDir)
+		if loadErr != nil {
+			group.Results = append(group.Results, CheckResult{
+				Name:     "cx.yaml",
+				Severity: Warning,
+				Message:  fmt.Sprintf("cx.yaml: %v", loadErr),
+				Fixable:  false,
+			})
+		} else {
+			group.Results = append(group.Results, CheckResult{
+				Name:     "cx.yaml",
+				Severity: Pass,
+				Message:  "cx.yaml valid structure",
+			})
+		}
 	}
 
 	return group

@@ -319,6 +319,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	ui.PrintBanner("CX initialized")
 	fmt.Println()
 	ui.PrintItem("project", rootDir)
+	ui.PrintItem("config", ".cx/cx.yaml")
 	ui.PrintItem("agents", fmt.Sprintf("%d configured", len(selectedSlugs)))
 	ui.PrintItem("MCP", "context7 + linear")
 	if _, err := os.Stat(directionPath); err == nil {
