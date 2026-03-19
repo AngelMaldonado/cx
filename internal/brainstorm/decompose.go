@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/amald/cx/internal/change"
 )
 
 // DecomposeResult describes what cx decompose created.
@@ -41,9 +43,9 @@ func Decompose(rootDir, name string) (*DecomposeResult, error) {
 	}
 
 	files := map[string]string{
-		"proposal.md": fmt.Sprintf("# Proposal: %s\n\n## Problem\n\n\n## Approach\n\n\n## Scope\n\n\n## Affected Specs\n\n", name),
-		"design.md":   fmt.Sprintf("# Design: %s\n\n## Architecture\n\n\n## Technical Decisions\n\n\n## Implementation Notes\n\n", name),
-		"tasks.md":    fmt.Sprintf("# Tasks: %s\n\n## Linear Issues\n\n\n## Implementation Notes\n\n", name),
+		"proposal.md": change.ProposalTemplate(name),
+		"design.md":   change.DesignTemplate(name),
+		"tasks.md":    change.TasksTemplate(name),
 	}
 
 	for filename, content := range files {
@@ -51,6 +53,11 @@ func Decompose(rootDir, name string) (*DecomposeResult, error) {
 		if err := atomicWrite(path, []byte(content)); err != nil {
 			return nil, fmt.Errorf("writing %s: %w", filename, err)
 		}
+	}
+
+	specsDir := filepath.Join(changeDir, "specs")
+	if err := os.MkdirAll(specsDir, 0o755); err != nil {
+		return nil, fmt.Errorf("creating specs directory: %w", err)
 	}
 
 	// Archive the masterfile
