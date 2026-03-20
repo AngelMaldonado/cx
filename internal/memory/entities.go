@@ -76,6 +76,10 @@ func SaveMemory(db *sql.DB, m Memory) error {
 		m.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	}
 
+	var sharedAt interface{}
+	if m.SharedAt != "" {
+		sharedAt = m.SharedAt
+	}
 	_, err := db.Exec(`INSERT OR REPLACE INTO memories
 		(id, entity_type, subtype, title, content, author, source, change_id,
 		 file_refs, spec_refs, tags, deprecates, deprecated, status, visibility,
@@ -83,7 +87,7 @@ func SaveMemory(db *sql.DB, m Memory) error {
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		m.ID, m.EntityType, m.Subtype, m.Title, m.Content, m.Author, m.Source, m.ChangeID,
 		m.FileRefs, m.SpecRefs, m.Tags, m.Deprecates, m.Deprecated, m.Status, m.Visibility,
-		m.SharedAt, m.CreatedAt, m.UpdatedAt, m.ArchivedAt)
+		sharedAt, m.CreatedAt, m.UpdatedAt, m.ArchivedAt)
 	if err != nil {
 		return fmt.Errorf("saving memory: %w", err)
 	}
@@ -204,10 +208,14 @@ func SaveAgentRun(db *sql.DB, run AgentRun) error {
 	if run.CreatedAt == "" {
 		run.CreatedAt = time.Now().UTC().Format(time.RFC3339)
 	}
+	var sessionID interface{}
+	if run.SessionID != "" {
+		sessionID = run.SessionID
+	}
 	_, err := db.Exec(`INSERT OR REPLACE INTO agent_runs
 		(id, session_id, agent_type, prompt_summary, result_status, result_summary, artifacts, duration_ms, created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		run.ID, run.SessionID, run.AgentType, run.PromptSummary, run.ResultStatus,
+		run.ID, sessionID, run.AgentType, run.PromptSummary, run.ResultStatus,
 		run.ResultSummary, run.Artifacts, run.DurationMs, run.CreatedAt)
 	if err != nil {
 		return fmt.Errorf("saving agent run: %w", err)

@@ -26,9 +26,10 @@ func Push(db *sql.DB, docsDir string, all bool) (PushResult, error) {
 	if err != nil {
 		return PushResult{}, fmt.Errorf("querying memories for push: %w", err)
 	}
-	defer rows.Close()
 
-	var result PushResult
+	// Collect all rows before closing the cursor so we can write to the DB
+	// after the read cursor is done (needed for in-memory SQLite connections).
+	var toExport []Memory
 	for rows.Next() {
 		var m Memory
 		var subtype, source, changeID, fileRefs, specRefs, tags, deprecates, status, sharedAt, updatedAt, archivedAt sql.NullString
@@ -36,6 +37,7 @@ func Push(db *sql.DB, docsDir string, all bool) (PushResult, error) {
 			&source, &changeID, &fileRefs, &specRefs, &tags, &deprecates,
 			&m.Deprecated, &status, &m.Visibility, &sharedAt,
 			&m.CreatedAt, &updatedAt, &archivedAt); err != nil {
+			rows.Close()
 			return PushResult{}, fmt.Errorf("scanning memory for push: %w", err)
 		}
 		m.Subtype = subtype.String
@@ -49,7 +51,16 @@ func Push(db *sql.DB, docsDir string, all bool) (PushResult, error) {
 		m.SharedAt = sharedAt.String
 		m.UpdatedAt = updatedAt.String
 		m.ArchivedAt = archivedAt.String
+		toExport = append(toExport, m)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return PushResult{}, err
+	}
+	rows.Close()
 
+	var result PushResult
+	for _, m := range toExport {
 		// Determine subdirectory
 		subDir := "observations"
 		if m.EntityType == "decision" {
@@ -77,7 +88,7 @@ func Push(db *sql.DB, docsDir string, all bool) (PushResult, error) {
 		result.Files = append(result.Files, filePath)
 	}
 
-	return result, rows.Err()
+	return result, nil
 }
 
 func memoryToMarkdown(m Memory) string {
