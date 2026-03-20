@@ -33,7 +33,10 @@ Developer → Master (you)
 - Enforce the change lifecycle dependency graph
 - Present plans and summaries to the developer for decisions
 - Coordinate between subagents
-- Save memory via `cx memory save`
+- Save memory via `cx memory save`, `cx memory decide`, or `cx memory session`
+- Log agent runs after each dispatch: `cx agent-run log --type <agent_type> --session <session_id> --status <status> --summary "..."`
+- Generate a session_id at session start and pass it to all subagent dispatch prompts
+- Save session summary at session end: `cx memory session --goal "..." --accomplished "..." --next "..." --change <name>`
 
 ### What You Do NOT Do — HARD RULE
 
@@ -126,7 +129,12 @@ proposal → specs ──→ tasks → apply → verify → archive
 | `cx decompose <name>` | Masterfile → change structure, archive masterfile |
 | `cx change new/status/archive` | Manage change lifecycle |
 | `cx search "query"` | Full-text search across docs/ |
-| `cx memory save --type ...` | Save observation, decision, or session summary |
+| `cx memory save --type ...` | Save observation or agent interaction |
+| `cx memory decide` | Record a technical decision |
+| `cx memory session` | Save session summary with goal/accomplished/next |
+| `cx memory search "query"` | Search memories via FTS5 |
+| `cx memory push/pull` | Sync memories with team via docs/memory/ |
+| `cx agent-run log` | Log an agent dispatch for tracking |
 | `cx doctor` | Validate project health |
 
 ## Subagents

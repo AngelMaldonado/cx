@@ -16,20 +16,25 @@ Full workflow for building something new. Covers requirements gathering, plannin
 
 ## Steps
 
-### 1. Gather requirements
+### 1. Prime context
+
+- Dispatch **Primer** to load project context, recent observations, active decisions, and personal notes
+- Wait for Primer to return before gathering requirements
+
+### 2. Gather requirements
 
 - Use `AskUserQuestion` to clarify scope, constraints, preferences, and tech choices
 - Keep asking until there are no open questions (3-5 rounds is normal)
 - Do NOT dispatch the Planner until requirements are clear
 
-### 2. Plan
+### 3. Plan
 
 - Dispatch **Planner** in **create plan** mode with all gathered requirements
 - Planner creates a masterfile at `docs/masterfiles/<name>.md` and returns a brief
 - Present the brief to the developer via `AskUserQuestion` — approve or request changes?
 - If changes needed: dispatch **Planner** in **iterate plan** mode with feedback, repeat until approved
 
-### 3. Decompose (MANDATORY — you must do this yourself)
+### 4. Decompose (MANDATORY — you must do this yourself)
 
 **YOU run this command directly via Bash. Do NOT skip it. Do NOT delegate it.**
 
@@ -43,13 +48,13 @@ After running `cx decompose`:
 - Dispatch **Planner** in **decompose** mode with the change name and archived masterfile path — it fills in proposal.md and design.md
 - Verify via `cx change status` that proposal and design are filled
 
-### 4. Design task breakdown
+### 5. Design task breakdown
 
 - Dispatch **Planner** in **task design** mode — it reads the change docs (proposal.md, design.md), analyzes the work, and produces a task breakdown in tasks.md
 - The task breakdown assigns work to specific executor agents based on the project's tech stack
 - Present the task breakdown to the developer via `AskUserQuestion` for approval
 
-### 5. Implement (orchestrate the full task list)
+### 6. Implement (orchestrate the full task list)
 
 You are responsible for working through the entire task list, not just spawning one agent.
 
@@ -65,6 +70,8 @@ You are responsible for working through the entire task list, not just spawning 
   4. Relevant spec areas (from delta specs in the change)
   5. A Scout map of the files the task will modify (dispatch Scout first if needed)
 - Pass all of this in the executor's prompt. Do NOT dispatch an executor with just a task name.
+- After each executor returns, log the run: `cx agent-run log --type <agent_type> --session <session_id> --status <status> --summary "..."`
+- Pass the session_id to each executor's prompt so they can log their own sub-dispatches
 - For each task in dependency order:
   1. Update the task to `in_progress` via `TodoWrite`
   2. Dispatch the assigned **executor agent** with the task description, relevant change docs, and any context from previously completed tasks
@@ -76,7 +83,7 @@ You are responsible for working through the entire task list, not just spawning 
 
 Do NOT dispatch a single executor and stop. You must drive every task to completion.
 
-### 6. Review & Archive
+### 7. Review & Archive
 
 - Dispatch **Reviewer** as a quality gate over all completed work
 - If Reviewer finds issues: dispatch executor to fix, then re-review
@@ -94,5 +101,6 @@ Do NOT dispatch a single executor and stop. You must drive every task to complet
 - Never dispatch an executor without completing decompose first
 - All three change files (proposal, design, tasks) must be non-empty before implementation starts
 - The developer must approve the plan before decompose
-- Save a session summary via `cx memory save --type session` at session end
+- At session end, save a session summary: `cx memory session --goal "..." --accomplished "..." --next "..." --change <name> --discoveries "..." --files "..."`
+- The --next field is critical — without it, the next CONTINUE session cannot recover state
 

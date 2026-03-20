@@ -23,3 +23,5 @@ Resolve conflicts between memory files, specs, and implementation. Detects contr
 - Never silently resolve conflicts — always involve the developer
 - Preserve the deprecated version in archive
 - Create a decision memory documenting the resolution
+- Memory sync conflicts (same entity ID, different content in local DB vs docs/memory/) are NOT handled by this skill — use `cx memory pull` and `cx doctor` instead
+- This skill handles semantic conflicts: contradictory specs, overlapping changes, conflicting design decisions

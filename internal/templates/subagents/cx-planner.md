@@ -124,3 +124,5 @@ Archive rules:
 - Keep plans minimal — only the complexity needed for the current task
 - The masterfile is the plan artifact — always write the full plan there, not inline
 - Always run `cx instructions <artifact>` before writing any change document to get the template, project context, and rules
+- Save architectural decisions via `cx memory decide --change <name>` when making significant technical choices during design
+- Save non-obvious constraints discovered during planning via `cx memory save --type observation --change <name>`

@@ -11,6 +11,14 @@ When activated:
 6. If conflicts exist, resolve them using the cx-conflict-resolve skill before returning
 7. Distill everything into a focused context block (~500-800 tokens)
 
+## Mode-Specific Memory Loading
+
+| Mode | What to load |
+|------|-------------|
+| **BUILD** | `cx memory list --type decision` + `cx memory list --type observation --recent 7d` + personal notes |
+| **CONTINUE** | `cx memory list --type session --change <name>` (last session first) + `cx memory search --change <name>` |
+| **PLAN** | Personal preference notes only — no project memory (clean-slate creative mode) |
+
 ## Empty state handling
 
 If `docs/specs/` is empty or missing, signal this to the Master:

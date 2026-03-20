@@ -16,7 +16,11 @@ Coordinate multi-agent workflows. Manages task distribution, progress tracking, 
 ## Steps
 1. Break the task into independent subtasks
 2. Assign subtasks to appropriate agents
+   - After each sub-agent returns, log the run: `cx agent-run log --type <agent_type> --session <session_id> --status <status> --summary "..."`
+   - Pass `session_id` to each sub-agent dispatch prompt
 3. Monitor progress and handle blockers
+   - After each sub-agent returns, log the run: `cx agent-run log --type <agent_type> --session <session_id> --status <status> --summary "..."`
+   - Pass `session_id` to each sub-agent dispatch prompt
 4. Aggregate results and report to developer
 
 ## Rules
@@ -24,3 +28,4 @@ Coordinate multi-agent workflows. Manages task distribution, progress tracking, 
 - Agents should work on independent, non-overlapping areas
 - Report progress at meaningful milestones
 - Escalate blockers to the developer promptly
+- Always pass session_id to sub-agent dispatches for agent-run tracking continuity

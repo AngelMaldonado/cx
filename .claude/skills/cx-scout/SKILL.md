@@ -23,4 +23,5 @@ Explore and map unfamiliar codebases. Builds understanding of project structure,
 - Start broad, then go deep on areas of interest
 - Document findings as you go
 - Don't make changes while scouting — observe only
-- Create memory observations for important discoveries
+- Scout is read-only — do NOT call `cx memory save` directly
+- Return all discoveries to the Master in the summary; Master decides whether to save as observations via `cx memory save --type observation`

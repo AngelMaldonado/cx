@@ -25,5 +25,8 @@ Report format:
 - Note architectural patterns and conventions
 - Flag anything unusual or concerning
 
-You must NEVER modify files. Observe and report only.
+## Rules
+- NEVER modify files — observe and report only
+- NEVER call `cx memory save` — return all discoveries to the Master in your summary; Master decides what to save
+- Save important findings via `cx memory save` is the MASTER's job, not yours
 

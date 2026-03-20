@@ -19,6 +19,8 @@ Workflow for brainstorming and high-level planning. Creates and iterates masterf
 - Use `AskUserQuestion` to understand what the developer wants to explore
 - Ask about goals, constraints, and what success looks like
 - Keep context light — planning benefits from a clean slate
+- PLAN mode loads minimal context intentionally — project overview only, no observations or decisions
+- This is a clean-slate creative mode
 
 ### 2. Plan
 - Dispatch **Planner** in **create plan** mode
@@ -33,6 +35,7 @@ Workflow for brainstorming and high-level planning. Creates and iterates masterf
 
 ### 4. Transition to BUILD (only if developer requests)
 - When the developer says "let's do it", "go ahead", "build this":
+- Before transitioning: `cx memory session --goal "..." --accomplished "planned <name>" --next "decompose and implement"`
 - Run `cx decompose <name>` to scaffold the change and archive the masterfile
 - Switch to the cx-build workflow from step 3 (decompose) onward
 
@@ -41,4 +44,4 @@ Workflow for brainstorming and high-level planning. Creates and iterates masterf
 - Never decompose without explicit developer approval
 - After decompose, the masterfile is archived and session switches to BUILD
 - Masterfile names must be kebab-case, max 40 characters
-- Save a session summary via `cx memory save --type session` at session end
+- At session end: `cx memory session --goal "..." --accomplished "..." --next "..."`

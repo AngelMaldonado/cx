@@ -14,14 +14,18 @@ Prime the AI agent context with relevant project knowledge. Loads key documents,
 - Agent needs background on a specific topic
 
 ## Steps
-1. Load project overview and specs
-2. Load project config (.cx/cx.yaml) for context and rules
-3. Load recent and relevant memories
-4. Load active change documents if applicable
-5. Present a summary of loaded context
+
+1. Classify session mode from the developer's opening message: CONTINUE, BUILD, or PLAN
+2. Load project config from `.cx/cx.yaml` for context and rules
+3. Load mode-specific memory:
+   - **BUILD**: `cx memory list --type decision` + `cx memory list --type observation --recent 7d` + personal notes
+   - **CONTINUE**: `cx memory list --type session --change <name>` (last session first) + `cx memory search --change <name>`
+   - **PLAN**: personal preference notes only — no project memory loaded (clean-slate creative mode)
+4. Load active change docs if applicable (`cx change status`)
+5. Distill and present summary to the Master
 
 ## Rules
-- Only load what is relevant — avoid context overload
-- Prioritize recent decisions over old observations
+- Primer is read-only and disposable — never writes memory, never modifies files
 - Always include project config context when available
 - If docs/specs/ is empty or missing, signal empty state to the Master and recommend Scout → Planner bootstrapping
+- Relevance filtering: prioritize recent decisions and observations over old ones
