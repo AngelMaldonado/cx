@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/amald/cx/internal/memory"
 	"github.com/amald/cx/internal/templates"
 )
 
@@ -59,6 +60,7 @@ type CXCacheResult struct {
 	DirCreated      bool
 	ConfigCreated   bool
 	ConfigSkipped   bool
+	MemoryDBCreated bool
 }
 
 func ScaffoldCXCache(rootDir string) (*CXCacheResult, error) {
@@ -88,6 +90,17 @@ func ScaffoldCXCache(rootDir string) (*CXCacheResult, error) {
 		result.ConfigCreated = true
 	} else {
 		result.ConfigSkipped = true
+	}
+
+	// Create memory.db
+	memDBPath := filepath.Join(cxDir, "memory.db")
+	if _, err := os.Stat(memDBPath); os.IsNotExist(err) {
+		db, err := memory.OpenProjectDB(rootDir)
+		if err != nil {
+			return result, fmt.Errorf("creating memory.db: %w", err)
+		}
+		db.Close()
+		result.MemoryDBCreated = true
 	}
 
 	return result, nil

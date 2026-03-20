@@ -1,11 +1,14 @@
 package project
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/amald/cx/internal/memory"
 )
 
 type ProjectRegistry struct {
@@ -29,14 +32,6 @@ func GlobalCXDir() (string, error) {
 	return dir, nil
 }
 
-func registryPath() (string, error) {
-	dir, err := GlobalCXDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(dir, "projects.json"), nil
-}
-
 func preferencesPath() (string, error) {
 	dir, err := GlobalCXDir()
 	if err != nil {
@@ -45,82 +40,164 @@ func preferencesPath() (string, error) {
 	return filepath.Join(dir, "preferences.json"), nil
 }
 
-func LoadRegistry() (*ProjectRegistry, error) {
-	path, err := registryPath()
-	if err != nil {
-		return nil, err
-	}
-	data, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return &ProjectRegistry{}, nil
-		}
-		return nil, err
-	}
-	var reg ProjectRegistry
-	if err := json.Unmarshal(data, &reg); err != nil {
-		return nil, fmt.Errorf("parsing projects.json: %w", err)
-	}
-	return &reg, nil
+// projectID returns a short SHA-256-based ID for a path.
+func projectID(path string) string {
+	sum := sha256.Sum256([]byte(path))
+	return fmt.Sprintf("%x", sum)[:12]
 }
 
-func SaveRegistry(reg *ProjectRegistry) error {
-	path, err := registryPath()
+// migrateJSONIfNeeded checks for a legacy projects.json and imports its paths
+// into the DB on first use. It is called automatically by DB-backed functions.
+func migrateJSONIfNeeded() error {
+	dir, err := GlobalCXDir()
 	if err != nil {
 		return err
 	}
-	data, err := json.MarshalIndent(reg, "", "  ")
+	jsonPath := filepath.Join(dir, "projects.json")
+	data, err := os.ReadFile(jsonPath)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("reading legacy projects.json: %w", err)
+	}
+
+	var reg struct {
+		Projects []string `json:"projects"`
+	}
+	if err := json.Unmarshal(data, &reg); err != nil {
+		return fmt.Errorf("parsing legacy projects.json: %w", err)
+	}
+
+	db, err := memory.OpenGlobalIndexDB()
 	if err != nil {
 		return err
 	}
-	return atomicWrite(path, data)
+	defer db.Close()
+
+	for _, p := range reg.Projects {
+		id := projectID(p)
+		name := filepath.Base(p)
+		_, err := db.Exec(
+			`INSERT OR IGNORE INTO projects (id, name, path) VALUES (?, ?, ?)`,
+			id, name, p,
+		)
+		if err != nil {
+			return fmt.Errorf("importing %s: %w", p, err)
+		}
+	}
+
+	// Rename the JSON file so we don't re-import on next run.
+	_ = os.Rename(jsonPath, jsonPath+".bak")
+	return nil
+}
+
+func LoadRegistry() (*ProjectRegistry, error) {
+	if err := migrateJSONIfNeeded(); err != nil {
+		return nil, err
+	}
+
+	db, err := memory.OpenGlobalIndexDB()
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+
+	rows, err := db.Query(`SELECT path FROM projects ORDER BY created_at`)
+	if err != nil {
+		return nil, fmt.Errorf("querying projects: %w", err)
+	}
+	defer rows.Close()
+
+	var paths []string
+	for rows.Next() {
+		var p string
+		if err := rows.Scan(&p); err != nil {
+			return nil, fmt.Errorf("scanning project row: %w", err)
+		}
+		paths = append(paths, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating project rows: %w", err)
+	}
+
+	return &ProjectRegistry{Projects: paths}, nil
+}
+
+// SaveRegistry is kept for API compatibility but is a no-op — writes now happen
+// per-operation in RegisterProject and RemoveProject.
+func SaveRegistry(_ *ProjectRegistry) error {
+	return nil
 }
 
 func RegisterProject(absPath string) (bool, error) {
-	reg, err := LoadRegistry()
+	if err := migrateJSONIfNeeded(); err != nil {
+		return false, err
+	}
+
+	db, err := memory.OpenGlobalIndexDB()
 	if err != nil {
 		return false, err
 	}
-	for _, p := range reg.Projects {
-		if p == absPath {
-			return false, nil // already registered
-		}
+	defer db.Close()
+
+	id := projectID(absPath)
+	name := filepath.Base(absPath)
+
+	res, err := db.Exec(
+		`INSERT OR IGNORE INTO projects (id, name, path) VALUES (?, ?, ?)`,
+		id, name, absPath,
+	)
+	if err != nil {
+		return false, fmt.Errorf("registering project: %w", err)
 	}
-	reg.Projects = append(reg.Projects, absPath)
-	if err := SaveRegistry(reg); err != nil {
+	affected, err := res.RowsAffected()
+	if err != nil {
 		return false, err
 	}
-	return true, nil
+	return affected > 0, nil
 }
 
 func RemoveProject(absPath string) (bool, error) {
-	reg, err := LoadRegistry()
+	if err := migrateJSONIfNeeded(); err != nil {
+		return false, err
+	}
+
+	db, err := memory.OpenGlobalIndexDB()
 	if err != nil {
 		return false, err
 	}
-	found := false
-	filtered := reg.Projects[:0]
-	for _, p := range reg.Projects {
-		if p == absPath {
-			found = true
-			continue
-		}
-		filtered = append(filtered, p)
+	defer db.Close()
+
+	res, err := db.Exec(`DELETE FROM projects WHERE path = ?`, absPath)
+	if err != nil {
+		return false, fmt.Errorf("removing project: %w", err)
 	}
-	if !found {
-		return false, nil
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return false, err
 	}
-	reg.Projects = filtered
-	return true, SaveRegistry(reg)
+	return affected > 0, nil
 }
 
 func IsFirstEverInit() bool {
-	path, err := registryPath()
+	if err := migrateJSONIfNeeded(); err != nil {
+		// If we can't touch the DB, treat it as first init.
+		return true
+	}
+
+	db, err := memory.OpenGlobalIndexDB()
 	if err != nil {
 		return true
 	}
-	_, err = os.Stat(path)
-	return os.IsNotExist(err)
+	defer db.Close()
+
+	var count int
+	row := db.QueryRow(`SELECT COUNT(*) FROM projects`)
+	if err := row.Scan(&count); err != nil {
+		return true
+	}
+	return count == 0
 }
 
 func LoadPreferences() (*Preferences, error) {

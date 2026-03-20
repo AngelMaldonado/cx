@@ -42,4 +42,6 @@ func init() {
 	rootCmd.AddCommand(decomposeCmd)
 	rootCmd.AddCommand(completionCmd)
 	rootCmd.AddCommand(instructionsCmd)
+	rootCmd.AddCommand(agentRunCmd)
+	rootCmd.AddCommand(memoryCmd)
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/amald/cx/internal/agents"
 	"github.com/amald/cx/internal/config"
+	"github.com/amald/cx/internal/memory"
 	"github.com/amald/cx/internal/project"
 )
 
@@ -37,6 +38,7 @@ func RunAllChecks(rootDir string) []CheckGroup {
 	return []CheckGroup{
 		CheckDocsStructure(rootDir),
 		CheckMemoryHealth(rootDir),
+		CheckMemoryDBHealth(rootDir),
 		CheckIndexHealth(rootDir),
 		CheckGitHooks(rootDir),
 		CheckMCPConfig(rootDir),
@@ -352,6 +354,65 @@ func CheckSkillFiles(rootDir string) CheckGroup {
 				Message:  fmt.Sprintf("%s: %d skills, all in sync", agent.Name, skillCount),
 			})
 		}
+	}
+
+	return group
+}
+
+func CheckMemoryDBHealth(rootDir string) CheckGroup {
+	group := CheckGroup{Name: "Memory DB"}
+
+	// Check .cx/memory.db exists
+	dbPath := filepath.Join(rootDir, ".cx", "memory.db")
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		group.Results = append(group.Results, CheckResult{
+			Name:     "memory.db exists",
+			Severity: Warning,
+			Message:  ".cx/memory.db not found — run cx init to create it",
+			Fixable:  false,
+		})
+		return group // can't check further without the DB
+	}
+	group.Results = append(group.Results, CheckResult{
+		Name:     "memory.db exists",
+		Severity: Pass,
+		Message:  ".cx/memory.db present",
+	})
+
+	// Check schema version
+	db, err := memory.OpenProjectDB(rootDir)
+	if err != nil {
+		group.Results = append(group.Results, CheckResult{
+			Name:     "memory.db schema",
+			Severity: Warning,
+			Message:  fmt.Sprintf("could not open memory.db: %v", err),
+			Fixable:  false,
+		})
+		return group
+	}
+	defer db.Close()
+
+	var version int
+	if err := db.QueryRow("SELECT COALESCE(MAX(version), 0) FROM schema_migrations").Scan(&version); err != nil {
+		group.Results = append(group.Results, CheckResult{
+			Name:     "memory.db schema",
+			Severity: Warning,
+			Message:  fmt.Sprintf("could not read schema version: %v", err),
+			Fixable:  false,
+		})
+	} else if version < 1 {
+		group.Results = append(group.Results, CheckResult{
+			Name:     "memory.db schema",
+			Severity: Warning,
+			Message:  "memory.db schema version is 0 — run cx init to migrate",
+			Fixable:  false,
+		})
+	} else {
+		group.Results = append(group.Results, CheckResult{
+			Name:     "memory.db schema",
+			Severity: Pass,
+			Message:  fmt.Sprintf("memory.db schema version %d", version),
+		})
 	}
 
 	return group

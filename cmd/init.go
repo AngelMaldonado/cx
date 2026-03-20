@@ -76,6 +76,11 @@ func runInit(cmd *cobra.Command, args []string) error {
 	} else if cxResult.ConfigSkipped {
 		ui.PrintMuted("skipped .cx/cx.yaml (exists)")
 	}
+	if cxResult.MemoryDBCreated {
+		ui.PrintSuccess("created .cx/memory.db")
+	} else {
+		ui.PrintMuted("skipped .cx/memory.db (exists)")
+	}
 	ui.Pause(300 * time.Millisecond)
 
 	// Step 4: Agent selection (interactive form, then spinner for setup)
