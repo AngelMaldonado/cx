@@ -37,11 +37,14 @@ The developer's sole conversational partner. Pure orchestrator — it understand
 
 **Responsibilities:**
 - Receive the developer's message, understand what they want
-- Spawn Primer at session start for context loading
+- Spawn Primer at session start for context loading (dispatched before any requirements gathering in BUILD mode)
 - Classify tasks and choose dispatch strategy (direct or team)
-- Pass primed context to dispatched agents
+- Pass primed context to dispatched agents; include `session_id` in every subagent dispatch prompt
 - Synthesize results from agents and present to developer
-- Save session summaries via `cx memory session` at session end
+- Save session summaries via `cx memory session` at session end (with all required fields: `goal`, `accomplished`, `next_steps`)
+- Save decision records for significant requirements choices via `cx memory decide`
+- Persist Scout findings via `cx memory save` (Scout is read-only and cannot write memory itself)
+- Call `cx agent-run log` after EVERY agent dispatch to record the completed run
 
 **Constraints:**
 - Never reads code files directly
@@ -178,7 +181,7 @@ Spawned by Supervisor for implementation work. Decomposes tasks into discrete su
 - Spawn Workers with specific instructions, files, and context
 - Review Worker output for correctness
 - Run checks (tests, linting) after Workers complete
-- Save observations via `cx memory save` for non-obvious discoveries
+- Save observations via `cx memory save --change <name>` for non-obvious discoveries (the `--change <name>` flag is required to link discoveries to the active change)
 - Report completion to Supervisor
 
 **Constraints:**
@@ -282,6 +285,39 @@ Developer's task
 
 ---
 
+## Agent Memory Contracts
+
+Each agent has defined memory read and write responsibilities:
+
+| Agent | Memory reads | Memory writes |
+|-------|-------------|---------------|
+| Master | Never directly — dispatches Primer | `cx memory session` at end, `cx memory decide` for requirements decisions, `cx agent-run log` after each dispatch, `cx memory save` for Scout findings |
+| Primer | `cx memory search`, `cx memory list` | Never |
+| Scout | None | Never (discoveries returned to Master; Master saves) |
+| Planner | Receives primed context in prompt | `cx memory decide --change <name>`, `cx memory save --type observation` |
+| Reviewer | `cx memory search --change <name>` | Never (Master saves review lessons) |
+| Executor | Receives primed context in prompt | `cx memory save --type observation --change <name>` for per-task discoveries |
+
+---
+
+## Agent Run Logging
+
+Master calls `cx agent-run log` AFTER every agent dispatch returns, atomically recording the completed run. Subagents MAY also call `cx agent-run log` before returning their summary to record their own work.
+
+The `session_id` is passed by Master in every subagent dispatch prompt. Subagents include it in their `cx agent-run log` call.
+
+Required fields for `cx agent-run log`:
+- `--type <agent_type>` — the agent type (primer, scout, planner, reviewer, executor, etc.)
+- `--session <session_id>` — the session this run belongs to
+- `--status <success|blocked|needs-input>` — outcome of the run
+- `--summary "..."` — what the agent did (brief)
+
+Optional fields: `--artifacts <p1,p2>`, `--duration-ms <ms>`, `--prompt-summary "first 200 chars"`.
+
+Both patterns write to `.cx/memory.db` in the current project.
+
+---
+
 ## Spawning Mechanism
 
 All agent spawning uses the coding agent platform's native agent tool. Each agent is passed:
@@ -289,7 +325,8 @@ All agent spawning uses the coding agent platform's native agent tool. Each agen
 1. **Role description** — from the agent's skill file or inline
 2. **Primed context** — relevant subset of what the Primer returned
 3. **Task description** — the specific task or question
-4. **Tool restrictions** — Scout gets read-only tools; Workers get full tools
+4. **Session ID** — passed by Master; subagents use it in `cx agent-run log`
+5. **Tool restrictions** — Scout gets read-only tools; Workers get full tools
 
 Agents do not share context windows. Each agent starts fresh with only what it's given. Results flow back through the hierarchy: Workers → Contractor → Supervisor → Master → Developer.
 

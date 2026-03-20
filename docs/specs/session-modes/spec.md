@@ -46,6 +46,17 @@ Primer classifies developer's opening message
 
 **Signal phrases**: "let's continue", "where were we", "back to [feature]", "pick up on [change]", "resume", references an existing change name, mentions previous work.
 
+### Memory touchpoints
+
+| Step | Action | Command |
+|------|--------|---------|
+| Session start | Primer loads last session (critical bridge) | `cx memory list --type session --change <name>` (sorted by `started_at` desc) |
+| Session start | Primer loads change-scoped memory | `cx memory search --change <name>` |
+| Implementation | Executor saves per-task discoveries | `cx memory save --type observation --change <name>` |
+| Session end | Master saves session summary with populated `next_steps` | `cx memory session --next "..."` |
+
+The `next_steps` field of the previous session summary IS the session recovery mechanism. Primer always includes it in the primed context for CONTINUE mode. Executors and Master are responsible for populating `next_steps` meaningfully at session end.
+
 ### What the Primer loads
 
 **From `cx context --mode continue --change <name>` (the map):**
@@ -53,9 +64,9 @@ Primer classifies developer's opening message
 | Section | Content | Priority |
 |---------|---------|----------|
 | `[CHANGE SUMMARY]` | proposal.md, design.md, tasks.md summaries | Critical |
-| `[SESSION RECOVERY]` | Last session: goal, accomplished, blockers, next steps, files | Critical |
-| `[CHANGE MEMORY]` | Observations + decisions scoped to this change | High |
-| `[DIRECTION]` | Full DIRECTION.md | Medium |
+| `[SESSION RECOVERY]` | Last session from `.cx/memory.db`: goal, accomplished, blockers, next steps, files | Critical |
+| `[CHANGE MEMORY]` | Observations + decisions scoped to this change (via `cx memory search --change <name>`) | High |
+| `[DIRECTION]` | Full DIRECTION.md (if it exists) | Medium |
 | `[PERSONAL NOTES]` | Relevant to files/specs being touched | Low |
 
 **From `cx context --load` (selective drill-in):**
@@ -78,6 +89,18 @@ The Primer loads the canonical spec for each area the change's delta touches, so
 
 **Signal phrases**: "I want to add...", "let's build...", "new feature:", "we need to create...", "implement", describes something that doesn't exist yet.
 
+### Memory touchpoints
+
+Primer is dispatched at the start of every BUILD session before requirements gathering.
+
+| Step | Action | Command |
+|------|--------|---------|
+| Session start | Primer loads recent observations + active decisions | `cx memory list --type observation --recent 7d`, `cx memory list --type decision` |
+| Requirements | Master saves significant constraints as decisions | `cx memory decide --change <name>` |
+| Implementation | Executor saves per-task discoveries | `cx memory save --type observation --change <name>` |
+| Each agent dispatch | Master logs agent run | `cx agent-run log --type <t> --session <id> ...` |
+| Session end | Master saves session summary | `cx memory session --goal "..." --accomplished "..." --next "..."` |
+
 ### What the Primer loads
 
 **From `cx context --mode build` (the map):**
@@ -86,9 +109,9 @@ The Primer loads the canonical spec for each area the change's delta touches, so
 |---------|---------|----------|
 | `[SPEC INDEX]` | Full docs/specs/index.md — what already exists | Critical |
 | `[ACTIVE CHANGES]` | Names + summaries of in-progress work | High |
-| `[DECISIONS]` | All active decisions (title + outcome, compact) | High |
-| `[OBSERVATIONS]` | Last 7 days, all team members (compact) | Medium |
-| `[DIRECTION]` | Full DIRECTION.md | Medium |
+| `[DECISIONS]` | All active decisions from `.cx/memory.db` (title + outcome, compact) | High |
+| `[OBSERVATIONS]` | Last 7 days from `cx memory list --type observation --recent 7d` (compact) | Medium |
+| `[DIRECTION]` | Full DIRECTION.md (if it exists) | Medium |
 | `[PERSONAL NOTES]` | Preferences and patterns | Low |
 
 **From `cx context --load` (selective drill-in):**
@@ -110,6 +133,13 @@ The Primer reads the spec index, identifies which spec areas relate to the devel
 **When**: Developer is doing high-level thinking — planning a big feature, rethinking architecture, starting a new project.
 
 **Signal phrases**: "let's plan...", "we need to think about...", "brainstorm...", "what if we...", "how should we approach...", "architecture", "v2", "roadmap", "redesign".
+
+### Memory touchpoints
+
+| Step | Action | Command |
+|------|--------|---------|
+| Session start | Minimal — personal notes only (clean-slate intent) | Personal notes via `cx context --mode plan` |
+| Transition to BUILD | Master saves planning session summary | `cx memory session --goal "..." --accomplished "..."` |
 
 ### What the Primer loads
 

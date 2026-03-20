@@ -73,7 +73,7 @@ cx context --load scenarios <area>    # docs/specs/<area>/scenarios.md
 cx context --load change <name>       # docs/changes/<name>/ (all files)
 cx context --load architecture        # docs/architecture/index.md
 cx context --load overview            # docs/overview.md
-cx context --load direction           # docs/memories/DIRECTION.md
+cx context --load direction           # docs/memory/DIRECTION.md
 cx context --load decision <slug>     # single decision, full content
 cx context --load observation <slug>  # single observation, full content
 cx context --load session <slug>      # single session, full content
@@ -104,13 +104,13 @@ All active decisions, compact (title → outcome):
 - TimescaleDB for telemetry → already running PostgreSQL, hypertable extension
 
 ## [OBSERVATIONS]
-Last 7 days, compact (author, age, title):
+Last 7 days from cx memory list --type observation --recent 7d (compact):
 - [angel, 2h] Fixed N+1 in /devices — JOIN for sensor readings
 - [carlos, 5h] MQTT drops messages >256KB — must chunk
 - [angel, 3d] Gas threshold callback has 100ms debounce
 
 ## [DIRECTION]
-Full content of docs/memories/DIRECTION.md.
+Full content of docs/memory/DIRECTION.md (if it exists).
 
 ## [PERSONAL NOTES]
 Matching personal notes from ~/.cx/memory.db:
@@ -133,7 +133,7 @@ From docs/changes/add-ble-pairing/:
   delta specs: device-communication
 
 ## [SESSION RECOVERY]
-Latest session by this author for this change:
+Latest session from cx memory list --type session --change add-ble-pairing (sorted by started_at desc):
   Goal: Implement basic BLE pairing flow on nRF52840
   Accomplished: basic pairing works, tested with nRF Connect
   Blockers: iOS CoreBluetooth not discovering service
@@ -141,13 +141,13 @@ Latest session by this author for this change:
   Files touched: src/ble/service.c, src/ble/pairing.c, prj.conf
 
 ## [CHANGE MEMORY]
-Observations + decisions where change = add-ble-pairing (compact):
+Observations + decisions from cx memory search --change add-ble-pairing (compact):
 - [obs] iOS CoreBluetooth requires Background Modes for BLE scanning
 - [obs] Zephyr BLE stack requires CONFIG_BT_SMP for pairing
 - [dec] BLE pairing uses Just Works mode → no user input required
 
 ## [DIRECTION]
-Full content of docs/memories/DIRECTION.md.
+Full content of docs/memory/DIRECTION.md (if it exists).
 
 ## [PERSONAL NOTES]
 Matching personal notes:
@@ -172,6 +172,22 @@ Preference and working-style notes:
 - I prefer Hono middleware as separate files per concern
 - My preferred test structure: arrange-act-assert
 ```
+
+---
+
+## Memory Loading
+
+All memory sections in the context map are assembled from `.cx/memory.db` FTS5 queries, not from direct markdown file scans.
+
+| Mode | Memory commands used |
+|------|---------------------|
+| BUILD | `cx memory list --type decision`, `cx memory list --type observation --recent 7d` |
+| CONTINUE | `cx memory list --type session --change <name>` (sorted by `started_at` desc), `cx memory search --change <name>` |
+| PLAN | Personal notes only via `cx context --mode plan` |
+
+The Primer passes `--change <name>` to scope memory results for CONTINUE mode, and `--type decision` or `--type observation` to filter by entity type. Direct file access to `docs/memory/` directories is not used for memory priming — all reads go through `cx memory search` and `cx memory list`.
+
+`cx context --mode <build|continue|plan> [--change <name>]` is the primary Primer entry point; it assembles the full map from all memory and doc sources. The Primer calls `cx context --load` selectively for specific resources after evaluating the map.
 
 ---
 

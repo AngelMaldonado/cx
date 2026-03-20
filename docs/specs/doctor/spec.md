@@ -22,18 +22,17 @@ Validates that required files and directories exist:
 | Check | Severity | Auto-fixable |
 |-------|----------|-------------|
 | `docs/overview.md` exists and has an H1 | Error | No |
-| `docs/architecture/index.md` exists | Warning | No |
 | `docs/specs/index.md` exists | Warning | No |
-| `docs/memories/DIRECTION.md` exists and is non-empty | Error | Yes (create default template) |
-| `docs/memories/observations/` directory exists | Warning | Yes (mkdir) |
-| `docs/memories/decisions/` directory exists | Warning | Yes (mkdir) |
-| `docs/memories/sessions/` directory exists | Warning | Yes (mkdir) |
+| `.cx/cx.yaml` parses without error (if present) | Warning | No |
+| `docs/memory/observations/` directory exists | Warning | Yes (mkdir) |
+| `docs/memory/decisions/` directory exists | Warning | Yes (mkdir) |
+| `docs/memory/sessions/` directory exists | Warning | Yes (mkdir) |
 | Active changes have all three files (proposal, design, tasks) | Warning | No |
 | No orphan delta specs (delta references a spec area that doesn't exist and isn't being created) | Warning | No |
 
 ### 2. Memory File Health
 
-Validates all files in `docs/memories/{observations,decisions,sessions}/`:
+Validates all files in `docs/memory/{observations,decisions,sessions}/`:
 
 | Check | Severity | Auto-fixable |
 |-------|----------|-------------|
@@ -46,7 +45,24 @@ Validates all files in `docs/memories/{observations,decisions,sessions}/`:
 | `deprecates` slug references an existing file | Warning | No |
 | `author` matches a known git committer in this repo | Warning | No |
 
-### 3. Index Health
+### 3. Memory DB Health
+
+Validates the per-project memory database:
+
+| Check | Severity | Auto-fixable |
+|-------|----------|-------------|
+| `.cx/memory.db` exists | Warning | Yes (`cx index rebuild`) |
+| `.cx/memory.db` schema version matches current expected version | Warning | Yes (`cx index rebuild`) |
+| Memory sync conflict: same ID exists in both `.cx/memory.db` and `docs/memory/` with different content | Warning | No |
+| `~/.cx/index.db` exists | Warning | Yes (bootstrapped on next `cx init` or `cx index rebuild`) |
+
+**Memory sync conflict check behavior:**
+- Compares IDs in local `.cx/memory.db` against files in `docs/memory/{observations,decisions}/`
+- For each ID present in both with differing `content` field: emit warning "memory sync conflict — local and shared versions of memory `<id>` differ"
+- Does not block — prints warnings only, exits 0
+- Mirrors the conflict detection in `cx memory pull`
+
+### 4. Index Health
 
 Validates the FTS5 index cache:
 
@@ -55,7 +71,7 @@ Validates the FTS5 index cache:
 | `.cx/.index.db` exists | Warning | Yes (`cx index rebuild`) |
 | Index is not stale (all docs/ files have mtimes older than last index build) | Warning | Yes (`cx index rebuild`) |
 
-### 4. Git Hooks
+### 5. Git Hooks
 
 Validates that CX git hooks are installed:
 
@@ -66,7 +82,7 @@ Validates that CX git hooks are installed:
 
 When auto-fixing, the binary checks if an existing hook file is present. If so, it appends the CX hook logic rather than overwriting.
 
-### 5. MCP Server Config
+### 6. MCP Server Config
 
 Validates external dependencies:
 
@@ -77,7 +93,7 @@ Validates external dependencies:
 
 MCP checks are warnings, not errors — a project can function without Linear integration.
 
-### 6. Skill Files
+### 7. Skill Files
 
 Validates that agent skill files are up-to-date:
 
@@ -96,9 +112,7 @@ cx doctor
 
   docs/ structure
     ✓ overview.md exists
-    ✓ architecture/index.md exists
     ✓ specs/index.md exists
-    ✓ memories/DIRECTION.md exists
     ✗ change "refactor-mqtt" missing design.md
     ✗ change "refactor-mqtt" missing tasks.md
 
@@ -109,6 +123,11 @@ cx doctor
     ⚠ decision "ble-just-works" missing ## Tradeoffs section
     ⚠ observation deprecates slug "mqtt-drops" not found
 
+  memory db
+    ✓ .cx/memory.db exists (schema v3)
+    ✓ ~/.cx/index.db exists
+    ⚠ memory sync conflict — local and shared versions of "2026-03-20-angel-mqtt-drops" differ
+
   git hooks
     ⚠ post-merge hook not installed
     ⚠ post-checkout hook not installed
@@ -117,7 +136,7 @@ cx doctor
     ✓ Linear MCP server configured
 
   ─────────────────────────────
-  2 errors, 4 warnings
+  2 errors, 5 warnings
 
   Auto-fixable:
     [1] Install post-merge hook
@@ -150,9 +169,9 @@ If there are only warnings (no errors), `cx doctor` exits with code 0. Any error
 3. Asks `Fix these? [y/n]`
 4. On `y`: applies all fixes using atomic writes (temp file + rename):
    - Creates missing directories
-   - Creates default DIRECTION.md template
    - Installs/updates git hooks (appends if existing hooks are present)
-   - Runs `cx index rebuild` for stale/missing index
+   - Runs `cx index rebuild` for stale/missing index or memory DB
+   - Bootstraps `~/.cx/index.db` if missing
    - Runs `cx sync` for outdated skill files
 5. Re-runs the affected checks and prints updated status
 6. On `n`: exits without changes

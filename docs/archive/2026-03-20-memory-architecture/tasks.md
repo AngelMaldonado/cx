@@ -94,7 +94,7 @@ Acceptance criteria: exported files contain valid YAML frontmatter with all fiel
 
 ---
 
-**TASK-06: Create `internal/memory/import.go` — `cx memory pull` and index rebuild implementation**
+**TASK-06: Create `internal/memory/import.go` — `cx memory pull` and index rebuild implementation** [DONE]
 
 Files: `internal/memory/import.go`
 
@@ -110,7 +110,7 @@ Acceptance criteria: fixture markdown files parse correctly into expected Memory
 
 ---
 
-**TASK-07: Wire `cmd/memory.go` — all `cx memory` subcommands**
+**TASK-07: Wire `cmd/memory.go` — all `cx memory` subcommands** [note/forget DONE]
 
 Files: `cmd/memory.go`, `cmd/root.go`
 
@@ -208,7 +208,7 @@ Acceptance criteria: `go build ./...` succeeds; `go test ./internal/memory/...` 
 
 ---
 
-**TASK-13: Tests for `internal/memory/` — unit tests**
+**TASK-13: Tests for `internal/memory/` — unit tests** [DONE]
 
 Files: `internal/memory/migrations_test.go`, `internal/memory/entities_test.go`, `internal/memory/fts_test.go`, `internal/memory/import_test.go`
 
@@ -221,23 +221,30 @@ Write tests:
 Dependencies: TASK-01 through TASK-06
 Acceptance criteria: `go test ./internal/memory/...` passes; test coverage includes happy path and error cases for each function
 
+Implementation notes:
+- Created `migrations_test.go`, `entities_test.go`, `fts_test.go`; push/pull/conflict tests placed in `export_test.go` (combined TASK-13 + TASK-14)
+- Fixed two bugs in production code discovered by tests:
+  - `SaveAgentRun`: empty `SessionID` now stored as NULL to satisfy FK constraint on `agent_runs.session_id`
+  - `SaveMemory`: empty `SharedAt` now stored as NULL so `Push`'s `WHERE shared_at IS NULL` filter works correctly
+  - `Push`: refactored to collect all rows before closing cursor, then write files and update DB (fixes "no such table" error caused by opening a second connection to in-memory SQLite while read cursor was open)
+- All 15 tests pass; `go build` and `go vet ./...` both clean
+
 ---
 
 ### Phase 2 — Team Sync Validation and Doctor
 
-**TASK-14: Integration tests for push/pull and conflict detection**
+**TASK-14: Integration tests for push/pull and conflict detection** [DONE]
 
-Files: `internal/memory/export_test.go`, `internal/memory/import_test.go` (extended)
+Files: `internal/memory/export_test.go`
 
 Write integration tests:
 - `cx memory push` exports only `visibility=project` rows; personal and session rows remain local; exported files have valid YAML frontmatter; `shared_at` updated in DB
 - `cx memory pull` imports non-conflicting rows; warns and skips conflicting rows; same-content rows are skipped silently
-- `cx doctor` conflict check: local DB and `docs/memory/` disagree on a memory ID → warning emitted
 - Deprecation: save entity A, save entity B with `--deprecates A`, verify A excluded from default search, included with `--include-deprecated`
 - Visibility: session rows with `visibility=personal` never appear in `docs/memory/` after push
 
-Dependencies: TASK-05, TASK-06, TASK-11
-Acceptance criteria: all integration tests pass; `cx doctor` warnings are deterministic given known input state
+Dependencies: TASK-05, TASK-06
+Acceptance criteria: all integration tests pass; combined with TASK-13 in `export_test.go`
 
 ---
 

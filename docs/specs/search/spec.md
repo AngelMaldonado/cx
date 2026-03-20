@@ -8,11 +8,12 @@ CX provides a unified search command that queries an FTS5 index covering all of 
 
 ```bash
 cx search "query"                    # search everything in docs/
-cx search "query" --memory           # only docs/memories/
+cx search "query" --memory           # only memory entities (from .cx/memory.db)
 cx search "query" --specs            # only docs/specs/
 cx search "query" --changes          # only docs/changes/
 cx search "query" --personal         # include personal notes from ~/.cx/memory.db
 cx search "query" --include-deprecated  # include deprecated observations/decisions
+cx search "query" --memory --all-projects  # federated cross-project memory search
 ```
 
 ### Default behavior
@@ -27,7 +28,7 @@ cx search "query" --include-deprecated  # include deprecated observations/decisi
 ```
 cx search "mqtt"
 
-  docs/memories/observations/2026-02-21T10-00-00-angel-mqtt-drops.md
+  docs/memory/observations/2026-02-21T10-00-00-angel-mqtt-drops.md
     [observation:discovery] MQTT broker silently drops messages over 256KB
     "...must chunk large payloads. Discovered when testing with 500 devices..."
 
@@ -46,14 +47,15 @@ cx search "mqtt"
 
 | Flag | Scope |
 |------|-------|
-| `--memory` | `docs/memories/observations/`, `docs/memories/decisions/`, `docs/memories/sessions/` |
+| `--memory` | Memory entities from `.cx/memory.db` FTS5 (`memories_fts`) |
 | `--specs` | `docs/specs/` |
 | `--changes` | `docs/changes/` |
-| `--all` | Everything in `docs/` (default) |
+| `--all` | Everything in `docs/` via `.cx/.index.db` + memory entities from `.cx/memory.db` (default) |
 | `--personal` | Also search `~/.cx/memory.db` (personal notes — local only, never in docs/) |
 | `--include-deprecated` | Include deprecated/superseded/cancelled entities |
 | `--type <t>` | Memory entities only: `observation`, `decision`, `session` |
 | `--author <a>` | Memory entities only: filter by author |
+| `--all-projects` | Federate search across all registered projects (requires `--memory`); opens `~/.cx/index.db` for project paths, merges results with project attribution |
 
 Filters can be combined: `cx search "mqtt" --memory --type observation --author angel`
 
@@ -64,7 +66,7 @@ Filters can be combined: `cx search "mqtt" --memory --type observation --author 
 ```
 cx search "hono" --personal
 
-  docs/memories/observations/2026-03-01T14-00-00-angel-hono-middleware.md
+  docs/memory/observations/2026-03-01T14-00-00-angel-hono-middleware.md
     [observation:pattern] Hono middleware structured as separate files per concern
     "...each middleware gets its own file under src/middleware/..."
 
@@ -85,42 +87,46 @@ Personal notes are never included in default search — `--personal` must be exp
 cx index rebuild
 ```
 
-Rebuilds the FTS5 index from scratch. Reads every `.md` file in `docs/` and indexes it into `.cx/.index.db`.
+Rebuilds both `.cx/.index.db` (docs FTS5 cache) and `.cx/memory.db` (memory entities) from scratch.
 
 ### What gets indexed
 
+**`.cx/.index.db`** (docs FTS5 cache — non-memory docs):
+
 | Source | How it's indexed |
 |--------|-----------------|
-| `docs/memories/observations/*.md` | Frontmatter parsed, H1 as title, full body for FTS5 |
-| `docs/memories/decisions/*.md` | Frontmatter parsed, H1 as title, sections extracted, full body for FTS5 |
-| `docs/memories/sessions/*.md` | Frontmatter parsed, H1 as title, sections extracted, full body for FTS5 |
 | `docs/specs/**/*.md` | H1 as title, full body for FTS5, path as spec area identifier |
 | `docs/architecture/**/*.md` | H1 as title, full body for FTS5 |
 | `docs/changes/**/*.md` | H1 as title, full body for FTS5, parent directory as change name |
 | `docs/overview.md` | H1 as title, full body for FTS5 |
-| `docs/memories/DIRECTION.md` | Indexed but not returned in search by default (policy doc, not knowledge) |
+| `docs/memory/DIRECTION.md` | Indexed but not returned in search by default (policy doc, not knowledge) |
+
+**`.cx/memory.db`** (memory entities — full re-ingest via `RebuildFromMarkdown`):
+
+| Source | How it's indexed |
+|--------|-----------------|
+| `docs/memory/observations/*.md` | Frontmatter parsed, H1 as title, full body for FTS5 |
+| `docs/memory/decisions/*.md` | Frontmatter parsed, H1 as title, sections extracted, full body for FTS5 |
+| `docs/memory/sessions/*.md` | Frontmatter parsed, H1 as title, sections extracted, full body for FTS5 |
 
 Files in `docs/archive/` and `docs/masterfiles/` are NOT indexed — they're historical.
 
-### Index schema
+### Index schemas
+
+**`.cx/.index.db`** — docs FTS5 cache (specs, changes, architecture, overview):
 
 ```sql
 CREATE TABLE indexed_docs (
     id          TEXT PRIMARY KEY,     -- relative path from project root
-    doc_type    TEXT NOT NULL,        -- observation | decision | session | spec | architecture | change | overview
+    doc_type    TEXT NOT NULL,        -- spec | architecture | change | overview
     title       TEXT NOT NULL,        -- H1 heading
     content     TEXT NOT NULL,        -- full markdown body
-    author      TEXT,                 -- frontmatter (memory entities only)
-    created_at  TEXT,                 -- frontmatter (memory entities only)
-    change_id   TEXT,                 -- frontmatter or parent directory
-    tags        TEXT,                 -- frontmatter (memory entities only)
-    deprecated  INTEGER DEFAULT 0,   -- 1 if deprecated by another entity
-    status      TEXT,                 -- active | superseded | cancelled (decisions only)
-    -- memory-specific fields
-    entity_subtype TEXT,             -- bugfix | discovery | pattern | context (observations only)
-    spec_refs   TEXT,                -- JSON array (memory entities only)
-    file_refs   TEXT,                -- JSON array (observations only)
-    deprecates  TEXT                 -- slug this entity deprecates (unified — no separate supersedes)
+    author      TEXT,
+    created_at  TEXT,
+    change_id   TEXT,                 -- parent directory (changes only)
+    tags        TEXT,
+    deprecated  INTEGER DEFAULT 0,
+    status      TEXT
 );
 
 CREATE VIRTUAL TABLE docs_fts USING fts5(
@@ -128,6 +134,36 @@ CREATE VIRTUAL TABLE docs_fts USING fts5(
     content=indexed_docs, content_rowid=rowid
 );
 ```
+
+**`.cx/memory.db`** — memory entities (observations, decisions, sessions):
+
+```sql
+CREATE TABLE memories (
+    id          TEXT PRIMARY KEY,
+    entity_type TEXT NOT NULL,        -- observation | decision
+    visibility  TEXT NOT NULL,        -- personal | project
+    title       TEXT NOT NULL,
+    content     TEXT NOT NULL,
+    author      TEXT NOT NULL,
+    source      TEXT,
+    change_id   TEXT,
+    file_refs   TEXT,                 -- JSON array
+    spec_refs   TEXT,                 -- JSON array
+    tags        TEXT,
+    deprecated  INTEGER DEFAULT 0,
+    deprecates  TEXT,
+    status      TEXT,                 -- active | superseded | cancelled (decisions only)
+    created_at  TEXT NOT NULL,
+    shared_at   TEXT
+);
+
+CREATE VIRTUAL TABLE memories_fts USING fts5(
+    title, content, tags, entity_type,
+    content=memories, content_rowid=rowid
+);
+```
+
+`cx search "query" --memory` queries `memories_fts` in `.cx/memory.db`. `cx search "query" --specs` (and other doc-scope flags) query `docs_fts` in `.cx/.index.db`. Both indexes are queried independently and results merged when `--memory` is combined with other scope flags.
 
 ### Rebuild triggers
 
@@ -192,16 +228,39 @@ For changes, `--load change <name>` returns all files in the change directory co
 
 ---
 
-## Migration: cx memory search
+## Cross-Project Search
 
-`cx memory search` is replaced by `cx search --memory`. For backwards compatibility during the transition:
+`cx search "query" --memory --all-projects` federates search across all registered projects:
+- Opens `~/.cx/index.db` to get project paths
+- Opens each project's `.cx/memory.db`
+- Merges and ranks results with project attribution
 
-```bash
-cx memory search "query"           →  cx search "query" --memory
-cx memory search --type decision   →  cx search --memory --type decision
-cx memory search --author angel    →  cx search --memory --author angel
-cx memory decisions                →  cx search --memory --type decision
-cx memory decisions --all          →  cx search --memory --type decision --include-deprecated
+```
+cx search "mqtt" --memory --all-projects
+
+  [observation:discovery | project: my-project] MQTT broker drops messages over 256KB
+    "...must chunk large payloads..."
+
+  [observation:pattern | project: other-project] MQTT retry with exponential backoff
+    "...pattern proven effective under high load..."
+
+  2 results (2 projects searched)
 ```
 
-The old commands remain as aliases until removed in a future version.
+---
+
+## cx memory search
+
+`cx memory search "query"` queries `.cx/memory.db` FTS5 directly (`memories_fts` virtual table). This is the recommended way for agents to search memory entities. Supports `--change <name>`, `--type <t>`, `--include-deprecated`, and `--all-projects` flags.
+
+`cx search "query" --memory` is the equivalent unified search command.
+
+```bash
+cx memory search "query"                        # search memory entities
+cx memory search "query" --change <name>        # scoped to a change
+cx memory search "query" --type observation     # filter by type
+cx memory search "query" --all-projects         # cross-project federation
+cx memory list --type decision                  # list all active decisions
+cx memory list --type session --change <name>   # list sessions for a change
+cx memory list --type observation --recent 7d  # list recent observations
+```

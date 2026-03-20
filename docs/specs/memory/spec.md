@@ -1,14 +1,14 @@
 # Spec: Memory
 
-The CX memory system stores four distinct entity types, each with different lifecycles, audiences, and query patterns. Project memory (observations, decisions, sessions) lives in `docs/memories/` and is committed to git. Personal notes are local-only SQLite.
+The CX memory system stores four distinct entity types, each with different lifecycles, audiences, and query patterns. Project memory (observations, decisions, sessions) lives in `docs/memory/` (singular) and is committed to git. `.cx/memory.db` is the primary queryable store for project memory. Personal notes are local-only SQLite in `~/.cx/memory.db`.
 
 See diagrams: [entity relationships](diagrams/01-entity-relationships.mermaid) · [storage architecture](diagrams/02-memory-storage.mermaid) · [entity lifecycles](diagrams/03-entity-lifecycles.mermaid) · [context composition](diagrams/04-context-composition.mermaid)
 
 ---
 
-## Memory Direction — docs/memories/DIRECTION.md
+## Memory Direction — docs/memory/DIRECTION.md
 
-Every project ships a `DIRECTION.md` inside `docs/memories/`. This file is written by the team and read by the agent at save-time to decide whether something is worth recording. It answers one question: **what counts as signal vs. noise in this project?**
+A project may ship a `DIRECTION.md` inside `docs/memory/`. This file is written by the team and read by the agent at save-time to decide whether something is worth recording. It answers one question: **what counts as signal vs. noise in this project?**
 
 `cx init` generates a default `DIRECTION.md` template. Teams are expected to refine it as they learn what kinds of observations actually prove useful.
 
@@ -66,9 +66,9 @@ When unsure, ask:
 
 ### How agents use DIRECTION.md
 
-Before calling `cx memory save`, the agent reads `docs/memories/DIRECTION.md` and applies its rules to the candidate observation. If it clearly falls into a "never save" category, the agent skips it. If it matches an "always save" category, the agent saves without deliberation. For everything in between, the threshold heuristics decide.
+Before calling `cx memory save`, the agent reads `docs/memory/DIRECTION.md` and applies its rules to the candidate observation. If it clearly falls into a "never save" category, the agent skips it. If it matches an "always save" category, the agent saves without deliberation. For everything in between, the threshold heuristics decide.
 
-`cx doctor` warns if `docs/memories/DIRECTION.md` is missing or empty — it is considered a required project file alongside `overview.md`.
+`DIRECTION.md` is optional, not required. `cx doctor` checks memory DB health rather than requiring this file.
 
 ---
 
@@ -116,10 +116,13 @@ tags        : string[]?  — free-form tags for search
 
 ### File Format
 
-Stored as `docs/memories/observations/<date>-<author>-<slug>.md`:
+Stored as `docs/memory/observations/<date>-<author>-<slug>.md`:
 
 ```markdown
 ---
+id: <slug>
+entity_type: observation
+visibility: project
 type: bugfix
 author: angel
 created: 2026-02-20T14:30:00Z
@@ -314,12 +317,15 @@ A cancelled decision doesn't need to `deprecates` anything — the `status: canc
 
 ### File Format
 
-Stored as `docs/memories/decisions/<date>-<author>-<slug>.md`.
+Stored as `docs/memory/decisions/<date>-<author>-<slug>.md`.
 
 All five body sections are **required**. `cx doctor` will warn on any decision file missing one. `cx memory decide` will refuse to write a file with missing sections.
 
 ```markdown
 ---
+id: <slug>
+entity_type: decision
+visibility: project
 author: angel
 created: 2026-02-22T10:00:00Z
 status: active
@@ -389,7 +395,7 @@ New session starts
 
 ### File Format
 
-Stored as `docs/memories/sessions/<date>-<author>.md`:
+Stored as `docs/memory/sessions/<date>-<author>.md`:
 
 ```markdown
 ---
@@ -486,59 +492,153 @@ CREATE VIRTUAL TABLE personal_notes_fts USING fts5(
 
 ## Storage Model
 
-### Project Memory — Git-Native Markdown
+### Project Memory — Git-Native Markdown + SQLite DB
 
 ```
-docs/memories/
-├── DIRECTION.md        ← committed (memory policy for this project)
-├── observations/       ← committed (team knowledge)
-├── decisions/          ← committed (team knowledge)
-└── sessions/           ← committed (team knowledge)
+docs/memory/
+├── DIRECTION.md        ← committed (optional memory policy for this project)
+├── observations/       ← committed (team knowledge — git transport)
+├── decisions/          ← committed (team knowledge — git transport)
+└── sessions/           ← committed (team knowledge — git transport)
 
-.cx/                    ← fully gitignored, local cache only
-└── .index.db           ← FTS5 index, rebuilt from all docs/ on demand
+.cx/                    ← fully gitignored, local only
+├── memory.db           ← primary queryable store (FTS5 + structured query)
+└── .index.db           ← FTS5 index for docs/ (specs, changes, overview)
 ```
 
-**Team sync is just git.** `git push` shares your memories. `git pull` gets the team's. No S3, no remote server, no custom sync protocol. Memory lives in `docs/` — the single source of truth.
+**Team sync is git + explicit push/pull commands.** `docs/memory/` markdown files are committed to git and serve as the team transport layer. `.cx/memory.db` is the primary query interface — always local, never committed.
 
-When teammates' memory files arrive via `git pull`, a `post-merge` git hook triggers `cx index rebuild` to update the local FTS5 cache. If hooks aren't installed, the binary still rebuilds lazily on the next command (mtime check). See [architecture — git hooks](../../architecture/index.md#git-hooks) for hook details.
+- `cx memory push` — exports `visibility=project` rows from `.cx/memory.db` to `docs/memory/` markdown files; sets `shared_at` on exported rows
+- `cx memory push --all` — re-exports all project-visible memories (idempotent)
+- `cx memory pull` — ingests `docs/memory/` markdown into `.cx/memory.db`; imports non-conflicting rows; warns and skips conflicting rows (same `id`, different `content`)
 
-### Index Cache
+When teammates' memory files arrive via `git pull`, a `post-merge` git hook triggers `cx index rebuild` to update both `.cx/.index.db` and `.cx/memory.db`.
 
-`.cx/.index.db` is a SQLite database with FTS5 that indexes all markdown in `docs/` (not just memories — see [search spec](../search/spec.md) for the full index schema). Memory entities are stored in the `indexed_docs` table alongside specs, changes, and architecture docs. It is a **read cache**, never the source of truth. `.cx/` is fully gitignored — nothing in it is ever committed.
+### `.cx/memory.db` — Per-Project SQLite DB
 
-The schema below shows the memory-specific columns. For the full unified index schema covering all doc types, see the [search spec](../search/spec.md).
+`.cx/memory.db` is the primary queryable store for project memory. Opened with WAL mode (`PRAGMA journal_mode=WAL`) for concurrent reader safety.
+
+Schema tables: `memories`, `memories_fts`, `sessions`, `agent_runs`, `memory_links`, `schema_migrations`.
 
 ```sql
-CREATE TABLE indexed_entities (
-    id          TEXT PRIMARY KEY,     -- filename slug
-    entity_type TEXT NOT NULL,        -- observation | decision | session
+-- Core memory entities (observations, decisions)
+CREATE TABLE memories (
+    id          TEXT PRIMARY KEY,
+    entity_type TEXT NOT NULL,        -- observation | decision
+    visibility  TEXT NOT NULL,        -- personal | project
     title       TEXT NOT NULL,
-    content     TEXT NOT NULL,        -- full markdown body
+    content     TEXT NOT NULL,
     author      TEXT NOT NULL,
-    created_at  TEXT NOT NULL,
+    source      TEXT,                 -- agent name that created it
     change_id   TEXT,
     file_refs   TEXT,                 -- JSON array
     spec_refs   TEXT,                 -- JSON array
     tags        TEXT,                 -- comma-separated
-    deprecated  INTEGER DEFAULT 0,   -- 1 if another entity deprecates this one
-    deprecates  TEXT,                 -- entity slug this one replaces (any entity type)
-    status      TEXT                  -- active | superseded | cancelled (decisions only; superseded set by index, not file)
+    deprecated  INTEGER DEFAULT 0,
+    deprecates  TEXT,
+    status      TEXT,                 -- active | superseded | cancelled (decisions only)
+    created_at  TEXT NOT NULL,
+    shared_at   TEXT                  -- when exported via cx memory push
 );
 
-CREATE VIRTUAL TABLE entities_fts USING fts5(
+CREATE VIRTUAL TABLE memories_fts USING fts5(
     title, content, tags, entity_type,
-    content=indexed_entities, content_rowid=rowid
+    content=memories, content_rowid=rowid
+);
+
+-- Session tracking
+CREATE TABLE sessions (
+    id          TEXT PRIMARY KEY,
+    author      TEXT NOT NULL,
+    change_id   TEXT,
+    goal        TEXT,
+    accomplished TEXT,
+    next_steps  TEXT,
+    blockers    TEXT,
+    files_touched TEXT,
+    started_at  TEXT NOT NULL,
+    ended_at    TEXT
+);
+
+-- Agent run tracking
+CREATE TABLE agent_runs (
+    id          TEXT PRIMARY KEY,
+    session_id  TEXT NOT NULL,
+    agent_type  TEXT NOT NULL,
+    status      TEXT NOT NULL,        -- success | blocked | needs-input
+    summary     TEXT,
+    artifacts   TEXT,
+    duration_ms INTEGER,
+    created_at  TEXT NOT NULL
+);
+
+-- Memory links
+CREATE TABLE memory_links (
+    from_id       TEXT NOT NULL,
+    to_id         TEXT NOT NULL,
+    relation_type TEXT NOT NULL,      -- related-to | caused-by | resolved-by | see-also
+    PRIMARY KEY (from_id, to_id, relation_type)
+);
+
+-- Schema versioning
+CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY);
+```
+
+Schema versioning uses embedded Go migrations keyed by integer version. `Migrate(db *sql.DB) error` is called on every DB open — idempotent, no external migration tool needed.
+
+### `~/.cx/index.db` — Global Project Registry
+
+`~/.cx/index.db` is the global project registry, replacing the old `projects.json`. On first creation, all paths from `projects.json` are one-time imported into the `projects` table.
+
+Schema tables: `projects`, `memory_index`, `memory_index_fts`, `schema_migrations`.
+
+Supports cross-project federation:
+- `cx memory search --all-projects "query"` — opens `~/.cx/index.db` to get project paths, opens each project's `.cx/memory.db`, federates search, merges and ranks results with project attribution
+- `cx memory list --all-projects` — cross-project listing without FTS
+
+### `.cx/.index.db` — Docs FTS5 Cache
+
+`.cx/.index.db` is a SQLite database with FTS5 that indexes all markdown in `docs/` except memory entities (specs, changes, architecture, overview). It is a **read cache** for non-memory doc search, never the source of truth. `.cx/` is fully gitignored.
+
+The schema below shows the full index schema. For the unified search interface, see the [search spec](../search/spec.md).
+
+```sql
+CREATE TABLE indexed_docs (
+    id          TEXT PRIMARY KEY,     -- relative path from project root
+    doc_type    TEXT NOT NULL,        -- spec | architecture | change | overview
+    title       TEXT NOT NULL,
+    content     TEXT NOT NULL,
+    author      TEXT,
+    created_at  TEXT,
+    change_id   TEXT,
+    tags        TEXT,
+    deprecated  INTEGER DEFAULT 0,
+    status      TEXT
+);
+
+CREATE VIRTUAL TABLE docs_fts USING fts5(
+    title, content, tags, doc_type,
+    content=indexed_docs, content_rowid=rowid
 );
 ```
 
-During index rebuild, after all files are inserted, the binary runs a second pass (see [Deprecation indexing](#deprecation-indexing) for full rules). Default queries filter with `WHERE deprecated = 0`.
-
-Rebuild triggers:
-1. **Proactive** — `post-merge` git hook calls `cx index rebuild` when memory files arrive via `git pull`
-2. **Lazy** — on any `cx` command, compare file mtimes in `docs/memories/{observations,decisions,sessions}/` against `last_indexed_at`; rebuild if any file is newer
+Rebuild triggers for both `.index.db` and `memory.db`:
+1. **Proactive** — `post-merge` git hook calls `cx index rebuild`
+2. **Lazy** — on any `cx` command, compare file mtimes in `docs/memory/{observations,decisions,sessions}/` against `last_indexed_at`; rebuild if any file is newer
+3. **Explicit** — `cx index rebuild` (full re-ingest from `docs/memory/` markdown, no conflict detection)
 
 For a team of 3–5 with hundreds of files, full reindex takes <100ms.
+
+### Memory Visibility Tiers
+
+Every row in `memories` carries a `visibility` field:
+
+| Visibility | Meaning | Default for |
+|-----------|---------|------------|
+| `project` | Exported to git via `cx memory push` | observation, decision |
+| `personal` | Local only, never exported | session, agent_run |
+
+Developer can override per-record with `--visibility personal|project`. Session rows are never exported by `cx memory push` regardless of visibility field.
 
 ---
 
@@ -551,9 +651,9 @@ This defines how the binary reads memory files and rebuilds the FTS5 index. Ever
 The binary only indexes files inside exactly three directories:
 
 ```
-docs/memories/observations/
-docs/memories/decisions/
-docs/memories/sessions/
+docs/memory/observations/
+docs/memory/decisions/
+docs/memory/sessions/
 ```
 
 No other file in `docs/` is ever read as a memory entity — not `DIRECTION.md`, not specs, not architecture docs. The directory name determines the entity type; no type field is needed in decisions or sessions.
@@ -628,6 +728,26 @@ The indexing rules:
 - `cx search --include-deprecated` includes them (shown at the bottom, marked)
 - `cx doctor` warns if a `deprecates` slug doesn't match any existing file
 
+### Export Markdown Format
+
+Memory entities exported via `cx memory push` use an enriched frontmatter format optimized for DB round-tripping:
+
+```yaml
+---
+id: <slug>
+entity_type: observation
+visibility: project
+author: angel
+source: go-expert
+change_id: memory-architecture
+file_refs: ["internal/memory/db.go"]
+spec_refs: ["memory"]
+tags: sqlite, migration
+created_at: 2026-03-20T14:00:00Z
+shared_at: 2026-03-20T14:05:00Z
+---
+```
+
 ### Validation on write
 
 `cx memory save/decide/session` validates before writing:
@@ -635,9 +755,13 @@ The indexing rules:
 - All required frontmatter fields are present
 - For decisions: all five body sections (`## Context`, `## Outcome`, `## Alternatives`, `## Rationale`, `## Tradeoffs`) are present and non-empty
 - For sessions: `## Goal` and `## Next Steps` are present and non-empty
-- For entities with `deprecates`: the referenced slug must exist in `docs/memories/{observations,decisions,sessions}/`
+- For entities with `deprecates`: the referenced slug must exist in `docs/memory/{observations,decisions,sessions}/`
 - For decisions: `status` must be one of `active`, `superseded`, `cancelled`
 - H1 title is present
+
+All three save commands (`cx memory save`, `cx memory decide`, `cx memory session`) write to BOTH `.cx/memory.db` AND `docs/memory/` markdown files (dual-write; markdown remains the team transport).
+
+`cx memory save` accepts additional flags: `--source <agent-name>`, `--visibility <personal|project>`.
 
 On failure, the command prints the missing fields and exits non-zero without writing the file.
 
@@ -660,23 +784,44 @@ See [context-priming spec](../context-priming/spec.md) for the full priming arch
 
 | Mode | What `cx context` reads from memory |
 |------|-------------------------------------|
-| BUILD | Active decisions (compact), observations from last 7 days (compact), personal notes |
-| CONTINUE | Session recovery (full), change-scoped observations + decisions (compact), personal notes |
+| BUILD | Active decisions (`cx memory list --type decision`), recent observations (`cx memory list --type observation --recent 7d`), personal notes |
+| CONTINUE | Last session (`cx memory list --type session --change <name>`), change-scoped observations + decisions (`cx memory search --change <name>`) |
 | PLAN | Personal preference notes only |
 
-The Primer receives these as part of the context map, evaluates relevance against the developer's intent, and distills them into the primed context output.
+Memory is loaded via `cx memory search` and `cx memory list` commands against `.cx/memory.db` — not by reading markdown files directly. The Primer receives these as part of the context map, evaluates relevance against the developer's intent, and distills them into the primed context output.
 
 ---
 
 ## Command Reference
 
-### Project Memory (stored in docs/memories/, committed to git)
+### Project Memory (stored in docs/memory/, committed to git)
 
 | Command | Entity | Action |
 |---------|--------|--------|
-| `cx memory save` | Observation | Create `docs/memories/observations/*.md` |
-| `cx memory decide` | Decision | Create `docs/memories/decisions/*.md` |
-| `cx memory session` | Session | Create `docs/memories/sessions/*.md` |
+| `cx memory save` | Observation | Write to `.cx/memory.db` and `docs/memory/observations/*.md` |
+| `cx memory decide` | Decision | Write to `.cx/memory.db` and `docs/memory/decisions/*.md` |
+| `cx memory session` | Session | Write to `.cx/memory.db` and `docs/memory/sessions/*.md` |
+
+### Team Sync
+
+| Command | Action |
+|---------|--------|
+| `cx memory push` | Export `visibility=project` rows with `shared_at IS NULL` to `docs/memory/` markdown |
+| `cx memory push --all` | Re-export all project-visible memories (idempotent) |
+| `cx memory pull` | Ingest `docs/memory/` markdown into `.cx/memory.db`; skip conflicting rows with warning |
+
+### Agent Run Tracking
+
+| Command | Action |
+|---------|--------|
+| `cx agent-run log --type <t> --session <id> --status <s> --summary "..."` | Record a completed agent dispatch |
+| `cx agent-run list` | List agent runs for current session |
+
+### Memory Links
+
+| Command | Action |
+|---------|--------|
+| `cx memory link <id1> <id2> --relation <type>` | Create explicit link between memory entities (`related-to`, `caused-by`, `resolved-by`, `see-also`) |
 
 ### Local Memory (stored in ~/.cx/memory.db, never synced)
 
@@ -689,12 +834,17 @@ The Primer receives these as part of the context map, evaluates relevance agains
 
 | Command | Action |
 |---------|--------|
-| `cx search "query" --memory` | FTS5 search over memories (excludes deprecated by default) |
+| `cx memory search "query"` | FTS5 search over `.cx/memory.db` (excludes deprecated by default) |
+| `cx memory search "query" --change <name>` | Filter by change scope |
+| `cx memory list --type <t>` | List by entity type |
+| `cx memory list --type observation --recent 7d` | List recent observations |
+| `cx memory search --all-projects "query"` | Cross-project federated search |
+| `cx search "query" --memory` | FTS5 search over memories via unified search (alias) |
 | `cx search "query" --memory --include-deprecated` | Include deprecated/cancelled entities in results |
 | `cx search "query" --memory --type <t>` | Filter by entity type |
 | `cx search "query" --memory --author <a>` | Filter by author |
 
-See [search spec](../search/spec.md) for the full unified search interface. `cx memory search` remains as an alias during migration.
+See [search spec](../search/spec.md) for the full unified search interface.
 
 ### Context Priming (called by Primer, not Master)
 

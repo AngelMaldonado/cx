@@ -560,3 +560,25 @@ TASK-16 (skills)                — independent, any time
 3. TASK-04, TASK-07, TASK-08 (packages that depend on Batch 2 — parallelizable)
 4. TASK-09, TASK-10, TASK-11, TASK-12, TASK-14, TASK-15 (commands — parallelizable after their package deps)
 5. TASK-13 (status display — needs TASK-04 and TASK-06 both done)
+
+---
+
+## Untracked tasks completed
+
+### Fix: Remove duplicate agent-run logging bullets from cx-supervise [DONE]
+
+**What:** Both `internal/skills/data/cx-supervise.md` and `.claude/skills/cx-supervise/SKILL.md` had duplicate agent-run logging bullets in Step 2 and Step 3. Removed the duplicate from Step 3, keeping them only in Step 2 (the dispatch step). Both files are now identical.
+
+**Files modified:**
+- `internal/skills/data/cx-supervise.md`
+- `.claude/skills/cx-supervise/SKILL.md`
+
+---
+
+### TASK-17: Create .cx/memory.db during cx init [DONE]
+
+**What:** `ScaffoldCXCache` in `internal/project/scaffold.go` now creates `memory.db` via `memory.OpenProjectDB` if the file does not exist. `CXCacheResult` gained a `MemoryDBCreated bool` field. `cmd/init.go` reports `.cx/memory.db` created or skipped in Step 3.
+
+**Files modified:**
+- `internal/project/scaffold.go`
+- `cmd/init.go`
