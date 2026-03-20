@@ -173,7 +173,7 @@ func Record(rootDir, changeName string) error
 
 ## Batch 3: Modify internal/change package
 
-### TASK-06: Update ChangeInfo, Archive, and completeness check in internal/change/change.go
+### TASK-06: Update ChangeInfo, Archive, and completeness check in internal/change/change.go [DONE]
 
 **Agent:** general-purpose
 
@@ -252,7 +252,7 @@ Note: The binary structures the prompt; the agent performs the actual merge writ
 
 ---
 
-### TASK-08: Add VerifyTemplate to internal/change/templates.go
+### TASK-08: Add VerifyTemplate to internal/change/templates.go [DONE]
 
 **Agent:** general-purpose
 
@@ -419,7 +419,7 @@ Add `changeCmd.AddCommand(changeSpecSyncCmd)` in `init()`.
 
 ## Batch 5: Init, Doctor, and Skills updates
 
-### TASK-14: Update cx init to create cx.yaml
+### TASK-14: Update cx init to create cx.yaml [DONE — DIRECTION.md and docs/architecture removed]
 
 **Agent:** general-purpose
 
