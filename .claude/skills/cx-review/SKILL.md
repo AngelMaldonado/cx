@@ -15,7 +15,7 @@ Review code changes, pull requests, and documents for quality, correctness, and 
 
 ## Steps
 1. Read the changes in context
-2. Check against project conventions and DIRECTION.md
+2. Check against project conventions and .cx/cx.yaml rules
 3. Identify issues: bugs, style, performance, security
 4. Provide specific, constructive feedback
 

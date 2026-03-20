@@ -30,7 +30,7 @@ The result: agents repeat mistakes, teams re-debate settled questions, specs bec
 A single `cx` binary that any project can adopt:
 
 1. **Developer talks to their coding agent** — the agent handles everything else
-2. **`docs/` is the single source of truth** — specs, changes, architecture, all in plain markdown
+2. **`docs/` is the single source of truth** — specs, changes, and memory, all in plain markdown
 3. **Memory persists** — observations, decisions, and session summaries accumulate in `docs/memories/`, committed to git, shared with the team
 4. **Specs stay current** — changes track what they modify, archive merges deltas back to specs
 5. **Agents are interchangeable** — Claude, Gemini, Codex all get the same skills, same context, same conventions

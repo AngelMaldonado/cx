@@ -2,12 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/amald/cx/internal/agents"
-	"github.com/amald/cx/internal/direction"
 	"github.com/amald/cx/internal/project"
 	"github.com/amald/cx/internal/ui"
 	"github.com/spf13/cobra"
@@ -141,39 +138,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	}
 	ui.Pause(300 * time.Millisecond)
 
-	// Step 5: DIRECTION.md
-	directionPath := filepath.Join(rootDir, "docs", "memory", "DIRECTION.md")
-	if _, err := os.Stat(directionPath); os.IsNotExist(err) {
-		fmt.Println()
-		projectType, err := ui.NewProjectTypeSelect()
-		if err != nil {
-			return err
-		}
-		ui.Pause(200 * time.Millisecond)
-
-		fmt.Println()
-		priorities, err := ui.NewPrioritiesSelect()
-		if err != nil {
-			return err
-		}
-		ui.Pause(200 * time.Millisecond)
-
-		dirErr := ui.RunWithSpinner("generating DIRECTION.md", 700*time.Millisecond, func() error {
-			content := direction.GenerateDirection(projectType, priorities)
-			return os.WriteFile(directionPath, []byte(content), 0o644)
-		})
-		if dirErr != nil {
-			ui.PrintError(fmt.Sprintf("writing DIRECTION.md: %v", dirErr))
-		} else {
-			ui.PrintSuccess(fmt.Sprintf("created DIRECTION.md (%s)", direction.ProjectTypeLabel(projectType)))
-		}
-	} else {
-		fmt.Println()
-		ui.PrintMuted("skipped DIRECTION.md (exists)")
-	}
-	ui.Pause(300 * time.Millisecond)
-
-	// Step 6: Git hooks (spinner for batch install, interactive for conflicts)
+	// Step 5: Git hooks (spinner for batch install, interactive for conflicts)
 	type hookResult struct {
 		hookType      string
 		existsAlready bool
@@ -322,16 +287,11 @@ func runInit(cmd *cobra.Command, args []string) error {
 	ui.PrintItem("config", ".cx/cx.yaml")
 	ui.PrintItem("agents", fmt.Sprintf("%d configured", len(selectedSlugs)))
 	ui.PrintItem("MCP", "context7 + linear")
-	if _, err := os.Stat(directionPath); err == nil {
-		ui.PrintItem("direction", "docs/memory/DIRECTION.md")
-	}
 	fmt.Println()
 	ui.PrintHeader("next steps")
-	ui.PrintMuted("  1. Review docs/memory/DIRECTION.md and customize for your project")
+	ui.PrintMuted("  1. Run cx doctor to verify setup")
 	ui.Pause(100 * time.Millisecond)
-	ui.PrintMuted("  2. Run cx doctor to verify setup")
-	ui.Pause(100 * time.Millisecond)
-	ui.PrintMuted("  3. Start a conversation with your AI agent")
+	ui.PrintMuted("  2. Start a conversation with your AI agent")
 	fmt.Println()
 
 	return nil

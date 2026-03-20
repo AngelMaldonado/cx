@@ -18,8 +18,6 @@ func ScaffoldDocs(rootDir string) (*ScaffoldResult, error) {
 
 	dirs := []string{
 		"docs",
-		"docs/architecture",
-		"docs/architecture/diagrams",
 		"docs/specs",
 		"docs/memory",
 		"docs/memory/observations",
@@ -38,9 +36,8 @@ func ScaffoldDocs(rootDir string) (*ScaffoldResult, error) {
 	}
 
 	templates := map[string]func() string{
-		"docs/overview.md":          OverviewTemplate,
-		"docs/architecture/index.md": ArchitectureTemplate,
-		"docs/specs/index.md":       SpecsIndexTemplate,
+		"docs/overview.md":    OverviewTemplate,
+		"docs/specs/index.md": SpecsIndexTemplate,
 	}
 
 	for relPath, tmplFn := range templates {
@@ -114,22 +111,7 @@ func OverviewTemplate() string {
 <!-- Link to important decisions in docs/memory/decisions/ -->
 
 ## Quick links
-- [Architecture](architecture/index.md)
 - [Specs](specs/index.md)
-`
-}
-
-func ArchitectureTemplate() string {
-	return `# Architecture
-
-## System overview
-<!-- High-level architecture description -->
-
-## Components
-<!-- List major components and their responsibilities -->
-
-## Diagrams
-<!-- Reference diagrams in diagrams/ subdirectory -->
 `
 }
 

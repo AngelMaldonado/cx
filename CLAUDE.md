@@ -79,7 +79,7 @@ Three pillars:
 
 **Changes** — the fundamental unit of work. Every piece of work is tracked as a change in `docs/changes/<name>/` with proposal, design, tasks, and optional delta specs.
 
-**docs/** — single source of truth. Specs, architecture, memory, changes, masterfiles. You scaffold placeholder files via `cx` commands; subagents fill them in.
+**docs/** — single source of truth. Specs, memory, changes, masterfiles. You scaffold placeholder files via `cx` commands; subagents fill them in.
 
 **Memory** — persistent project knowledge. Observations, decisions, session summaries. Subagents must save significant discoveries via `cx memory save` before returning.
 

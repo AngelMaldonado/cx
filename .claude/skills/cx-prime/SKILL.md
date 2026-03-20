@@ -14,8 +14,8 @@ Prime the AI agent context with relevant project knowledge. Loads key documents,
 - Agent needs background on a specific topic
 
 ## Steps
-1. Load project overview and architecture docs
-2. Load DIRECTION.md for project-specific guidance
+1. Load project overview and specs
+2. Load project config (.cx/cx.yaml) for context and rules
 3. Load recent and relevant memories
 4. Load active change documents if applicable
 5. Present a summary of loaded context
@@ -23,4 +23,4 @@ Prime the AI agent context with relevant project knowledge. Loads key documents,
 ## Rules
 - Only load what is relevant — avoid context overload
 - Prioritize recent decisions over old observations
-- Always include DIRECTION.md when available
+- Always include project config context when available

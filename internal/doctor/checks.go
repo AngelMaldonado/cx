@@ -50,7 +50,6 @@ func CheckDocsStructure(rootDir string) CheckGroup {
 
 	requiredDirs := []string{
 		"docs",
-		"docs/architecture",
 		"docs/specs",
 		"docs/memory",
 		"docs/memory/observations",
@@ -106,28 +105,6 @@ func CheckDocsStructure(rootDir string) CheckGroup {
 			Name:     "docs/overview.md",
 			Severity: Pass,
 			Message:  "docs/overview.md valid",
-		})
-	}
-
-	// Check DIRECTION.md
-	directionPath := filepath.Join(rootDir, "docs", "memory", "DIRECTION.md")
-	if _, err := os.Stat(directionPath); os.IsNotExist(err) {
-		group.Results = append(group.Results, CheckResult{
-			Name:     "DIRECTION.md",
-			Severity: Warning,
-			Message:  "docs/memory/DIRECTION.md not found — run cx init to generate",
-			Fixable:  true,
-			FixLabel: "create docs/memory/DIRECTION.md from template",
-			FixFunc: func() error {
-				tmpl := "# DIRECTION\n\n<!-- Run cx init to generate project-specific guidance -->\n"
-				return os.WriteFile(directionPath, []byte(tmpl), 0o644)
-			},
-		})
-	} else {
-		group.Results = append(group.Results, CheckResult{
-			Name:     "DIRECTION.md",
-			Severity: Pass,
-			Message:  "docs/memory/DIRECTION.md exists",
 		})
 	}
 
