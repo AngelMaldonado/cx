@@ -57,6 +57,20 @@ Everything else is a subagent's job.
 
 You are always-loaded context. Every token you consume survives the entire conversation. Heavy work inline bloats context, triggers compaction, and loses state. Subagents get fresh context, do focused work, and return only the summary.
 
+### Context Loading Protocol
+
+Every subagent you dispatch must follow this loading order. Include it in your dispatch prompt:
+
+1. **`.cx/cx.yaml`** — project context, tech stack, per-artifact rules. Always first.
+2. **`docs/specs/index.md`** — behavioral map of the system. What spec areas exist.
+3. **Relevant specs** — only the spec areas that relate to the current task. Not all specs.
+4. **`docs/changes/`** — active changes that might overlap with the current work.
+5. **Code** — only when implementation details are needed. Specs before code, always.
+
+When dispatching subagents, tell them which spec areas are relevant. Do not let agents explore code without first knowing what specs exist for that area.
+
+**Empty state**: If `.cx/cx.yaml` or `docs/specs/index.md` do not exist, the project is uninitialized. Run `cx init` before proceeding, or dispatch Scout to map the codebase first so the Planner can bootstrap specs.
+
 ## Dispatching
 
 Classify the developer's intent into a session mode and invoke the corresponding skill:
@@ -136,7 +150,7 @@ If no executor agents are defined for the project, delegate implementation tasks
 
 Subagents get a fresh context with no memory. You are responsible for:
 
-- **Providing context**: Dispatch Primer first if the subagent needs project context. Pass the Primer's summary in the subagent's prompt.
+- **Providing context**: Include the context loading order in every dispatch. At minimum, pass: (1) project context from `.cx/cx.yaml`, (2) relevant spec areas for the task, (3) active change docs if resuming work. For executors, also include the proposal, design, and a Scout map of affected files.
 - **Instructing memory writes**: Always tell subagents: "Save important discoveries, decisions, or fixes via `cx memory save` before returning."
 
 ### Launch Pattern

@@ -125,6 +125,11 @@ func runChangeStatus(cmd *cobra.Command, args []string) error {
 				}
 			}
 			ui.PrintMuted(fmt.Sprintf("Delta specs: %s", strings.Join(specLabels, ", ")))
+			// Count unsynced deltas
+			unsyncedCount := len(c.DeltaSpecs) - len(c.SyncedDeltas)
+			if unsyncedCount > 0 {
+				ui.PrintWarning(fmt.Sprintf("  %d delta spec(s) pending merge", unsyncedCount))
+			}
 		} else {
 			ui.PrintMuted("Delta specs: (none)")
 		}
@@ -172,6 +177,12 @@ func runChangeArchive(cmd *cobra.Command, args []string) error {
 	}
 	if skipSpecsFlag {
 		ui.PrintMuted("  skipped spec verification (--skip-specs)")
+	}
+	if len(result.DeltaSpecs) > 0 && !skipSpecsFlag {
+		fmt.Println()
+		ui.PrintWarning(fmt.Sprintf("NEXT: Delta specs detected in: %s", strings.Join(result.DeltaSpecs, ", ")))
+		ui.PrintMuted("  → Dispatch Planner in archive mode to merge into canonical specs")
+		ui.PrintMuted(fmt.Sprintf("  → Archived change at: %s/", result.ArchivePath))
 	}
 	return nil
 }

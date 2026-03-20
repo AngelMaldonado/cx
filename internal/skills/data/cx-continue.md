@@ -19,6 +19,7 @@ Workflow for picking up existing work. Loads the active change context and dispa
 - Dispatch **Primer** to load the active change context (proposal, design, tasks, last session, change-scoped memory)
 - If multiple active changes exist: use `AskUserQuestion` to ask which change to resume
 - Review the Primer's summary to understand current state
+- If Primer signals empty state (no specs, no changes), this is not a CONTINUE — redirect to BUILD or run `cx init` first.
 
 ### 2. Assess remaining work
 - Check `cx change status` to see what's done and what's missing

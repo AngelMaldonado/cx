@@ -139,6 +139,7 @@ func ListChanges(rootDir string) ([]ChangeInfo, error) {
 type ArchiveResult struct {
 	ArchivePath       string
 	BootstrappedSpecs []string
+	DeltaSpecs        []string // spec areas with deltas that need merging
 }
 
 type ArchiveOptions struct {
@@ -215,13 +216,29 @@ func Archive(rootDir, name string, opts ArchiveOptions) (*ArchiveResult, error) 
 				if err := os.MkdirAll(filepath.Dir(canonicalSpec), 0o755); err != nil {
 					return nil, fmt.Errorf("creating spec directory for %s: %w", area, err)
 				}
-				if err := atomicWrite(canonicalSpec, []byte(SpecTemplate(area))); err != nil {
-					return nil, fmt.Errorf("writing spec scaffold for %s: %w", area, err)
+				// Populate from delta spec content instead of empty template
+				content := SpecTemplate(area)
+				deltaPath := filepath.Join(deltaSpecsDir, area, "spec.md")
+				if deltaData, err := os.ReadFile(deltaPath); err == nil {
+					content = deltaToCanonical(area, string(deltaData))
+				}
+				if err := atomicWrite(canonicalSpec, []byte(content)); err != nil {
+					return nil, fmt.Errorf("writing spec for %s: %w", area, err)
 				}
 				bootstrapped = append(bootstrapped, area)
 			}
 		}
 		sort.Strings(bootstrapped)
+	}
+
+	// Collect all delta spec areas (for result reporting)
+	var deltaAreas []string
+	if entries, err := os.ReadDir(deltaSpecsDir); err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() {
+				deltaAreas = append(deltaAreas, entry.Name())
+			}
+		}
 	}
 
 	// Move to archive
@@ -238,6 +255,7 @@ func Archive(rootDir, name string, opts ArchiveOptions) (*ArchiveResult, error) 
 	return &ArchiveResult{
 		ArchivePath:       archivePath,
 		BootstrappedSpecs: bootstrapped,
+		DeltaSpecs:        deltaAreas,
 	}, nil
 }
 
@@ -362,6 +380,54 @@ func stripFrontmatter(content string) string {
 		return rest[idx+4:] // skip past closing "\n---"
 	}
 	return "" // only frontmatter, no body
+}
+
+func deltaToCanonical(area, delta string) string {
+	body := stripFrontmatter(delta)
+
+	// Build canonical spec with proper frontmatter
+	var sb strings.Builder
+	sb.WriteString("---\nname: ")
+	sb.WriteString(area)
+	sb.WriteString("\ntype: spec\n---\n")
+
+	// Extract ADDED Requirements content as the canonical requirements
+	// For greenfield, this is the primary content
+	lines := strings.Split(body, "\n")
+	var inAdded bool
+	var hasContent bool
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "## ADDED Requirements" {
+			inAdded = true
+			sb.WriteString("\n## Requirements\n")
+			continue
+		}
+		if trimmed == "## MODIFIED Requirements" || trimmed == "## REMOVED Requirements" ||
+			trimmed == "## ADDED Scenarios" || trimmed == "## MODIFIED Scenarios" || trimmed == "## REMOVED Scenarios" {
+			inAdded = false
+			continue
+		}
+		if inAdded {
+			sb.WriteString(line)
+			sb.WriteString("\n")
+			if trimmed != "" {
+				hasContent = true
+			}
+		}
+	}
+
+	if !hasContent {
+		// Delta had no ADDED content, fall back to writing body as-is
+		sb.Reset()
+		sb.WriteString("---\nname: ")
+		sb.WriteString(area)
+		sb.WriteString("\ntype: spec\n---\n")
+		sb.WriteString(strings.TrimSpace(body))
+		sb.WriteString("\n")
+	}
+
+	return sb.String()
 }
 
 func atomicWrite(path string, data []byte) error {

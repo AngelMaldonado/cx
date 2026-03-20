@@ -58,6 +58,13 @@ You are responsible for working through the entire task list, not just spawning 
 - This gives the developer a visible checklist of all work before any execution starts
 
 **Then, work through each task:**
+- Before dispatching each executor, assemble its context package:
+  1. Project context from `.cx/cx.yaml`
+  2. The proposal.md and design.md from the change
+  3. The specific task description from tasks.md
+  4. Relevant spec areas (from delta specs in the change)
+  5. A Scout map of the files the task will modify (dispatch Scout first if needed)
+- Pass all of this in the executor's prompt. Do NOT dispatch an executor with just a task name.
 - For each task in dependency order:
   1. Update the task to `in_progress` via `TodoWrite`
   2. Dispatch the assigned **executor agent** with the task description, relevant change docs, and any context from previously completed tasks

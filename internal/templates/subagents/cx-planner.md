@@ -123,3 +123,4 @@ Archive rules:
 - Prefer reusing existing code over creating new abstractions
 - Keep plans minimal — only the complexity needed for the current task
 - The masterfile is the plan artifact — always write the full plan there, not inline
+- Always run `cx instructions <artifact>` before writing any change document to get the template, project context, and rules

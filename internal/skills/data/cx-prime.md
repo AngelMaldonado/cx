@@ -24,3 +24,4 @@ Prime the AI agent context with relevant project knowledge. Loads key documents,
 - Only load what is relevant — avoid context overload
 - Prioritize recent decisions over old observations
 - Always include project config context when available
+- If docs/specs/ is empty or missing, signal empty state to the Master and recommend Scout → Planner bootstrapping

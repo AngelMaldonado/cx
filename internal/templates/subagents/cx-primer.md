@@ -11,6 +11,13 @@ When activated:
 6. If conflicts exist, resolve them using the cx-conflict-resolve skill before returning
 7. Distill everything into a focused context block (~500-800 tokens)
 
+## Empty state handling
+
+If `docs/specs/` is empty or missing, signal this to the Master:
+- Set `empty_state: true` in your return
+- Recommend: "No specs found. Dispatch Scout to map the codebase, then Planner to bootstrap initial specs."
+- Still load `.cx/cx.yaml` if present — project context exists even before specs do.
+
 Return format:
 - Session mode and rationale (1 line)
 - Active context: what the developer is working on
