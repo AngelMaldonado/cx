@@ -1,6 +1,7 @@
 package doctor
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -415,7 +416,75 @@ func CheckMemoryDBHealth(rootDir string) CheckGroup {
 		})
 	}
 
+	// Check for sync conflicts between DB and docs/memory/
+	conflicts := checkMemorySyncConflicts(db, rootDir)
+	for _, c := range conflicts {
+		group.Results = append(group.Results, CheckResult{
+			Name:     fmt.Sprintf("memory sync: %s", c),
+			Severity: Warning,
+			Message:  fmt.Sprintf("memory %q differs between local DB and docs/memory/", c),
+			Fixable:  false,
+		})
+	}
+	if len(conflicts) == 0 {
+		group.Results = append(group.Results, CheckResult{
+			Name:     "memory sync",
+			Severity: Pass,
+			Message:  "local DB and docs/memory/ are in sync",
+		})
+	}
+
 	return group
+}
+
+func checkMemorySyncConflicts(db *sql.DB, rootDir string) []string {
+	var conflicts []string
+	docsDir := filepath.Join(rootDir, "docs")
+	memDir := filepath.Join(docsDir, "memory")
+
+	for _, subDir := range []string{"observations", "decisions"} {
+		dir := filepath.Join(memDir, subDir)
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
+				continue
+			}
+			id := strings.TrimSuffix(entry.Name(), ".md")
+
+			// Read file content
+			data, err := os.ReadFile(filepath.Join(dir, entry.Name()))
+			if err != nil {
+				continue
+			}
+			fileContent := extractBody(string(data))
+
+			// Read DB content
+			var dbContent string
+			err = db.QueryRow("SELECT content FROM memories WHERE id = ?", id).Scan(&dbContent)
+			if err != nil {
+				continue // not in DB, not a conflict
+			}
+
+			if strings.TrimSpace(dbContent) != strings.TrimSpace(fileContent) {
+				conflicts = append(conflicts, id)
+			}
+		}
+	}
+	return conflicts
+}
+
+func extractBody(content string) string {
+	if !strings.HasPrefix(content, "---\n") {
+		return content
+	}
+	rest := content[4:]
+	if idx := strings.Index(rest, "\n---"); idx >= 0 {
+		return strings.TrimSpace(rest[idx+4:])
+	}
+	return content
 }
 
 func CheckSubagentFiles(rootDir string) CheckGroup {

@@ -57,7 +57,7 @@ func OpenPersonalDB() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := Migrate(db, projectMigrations); err != nil {
+	if err := Migrate(db, personalMigrations); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("migrating %s: %w", dbPath, err)
 	}

@@ -19,6 +19,24 @@ var indexMigrations = []Migration{
 	{Version: 1, Description: "initial index schema", Up: v1IndexSchema},
 }
 
+var personalMigrations = []Migration{
+	{Version: 1, Description: "personal schema", Up: v1PersonalSchema},
+}
+
+func v1PersonalSchema(db *sql.DB) error {
+	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS personal_notes (
+		id         TEXT PRIMARY KEY,
+		topic_key  TEXT,
+		title      TEXT NOT NULL,
+		content    TEXT NOT NULL,
+		tags       TEXT,
+		projects   TEXT,
+		created_at TEXT NOT NULL DEFAULT (datetime('now')),
+		updated_at TEXT DEFAULT (datetime('now'))
+	)`)
+	return err
+}
+
 func Migrate(db *sql.DB, migrations []Migration) error {
 	if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS schema_migrations (
 		version     INTEGER PRIMARY KEY,

@@ -19,8 +19,6 @@ Coordinate multi-agent workflows. Manages task distribution, progress tracking, 
    - After each sub-agent returns, log the run: `cx agent-run log --type <agent_type> --session <session_id> --status <status> --summary "..."`
    - Pass `session_id` to each sub-agent dispatch prompt
 3. Monitor progress and handle blockers
-   - After each sub-agent returns, log the run: `cx agent-run log --type <agent_type> --session <session_id> --status <status> --summary "..."`
-   - Pass `session_id` to each sub-agent dispatch prompt
 4. Aggregate results and report to developer
 
 ## Rules

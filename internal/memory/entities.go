@@ -62,6 +62,7 @@ type ListOpts struct {
 	ChangeID          string
 	Recent            time.Duration
 	IncludeDeprecated bool
+	IncludeArchived   bool
 	Limit             int
 }
 
@@ -80,6 +81,10 @@ func SaveMemory(db *sql.DB, m Memory) error {
 	if m.SharedAt != "" {
 		sharedAt = m.SharedAt
 	}
+	var archivedAt interface{}
+	if m.ArchivedAt != "" {
+		archivedAt = m.ArchivedAt
+	}
 	_, err := db.Exec(`INSERT OR REPLACE INTO memories
 		(id, entity_type, subtype, title, content, author, source, change_id,
 		 file_refs, spec_refs, tags, deprecates, deprecated, status, visibility,
@@ -87,7 +92,7 @@ func SaveMemory(db *sql.DB, m Memory) error {
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		m.ID, m.EntityType, m.Subtype, m.Title, m.Content, m.Author, m.Source, m.ChangeID,
 		m.FileRefs, m.SpecRefs, m.Tags, m.Deprecates, m.Deprecated, m.Status, m.Visibility,
-		sharedAt, m.CreatedAt, m.UpdatedAt, m.ArchivedAt)
+		sharedAt, m.CreatedAt, m.UpdatedAt, archivedAt)
 	if err != nil {
 		return fmt.Errorf("saving memory: %w", err)
 	}
@@ -107,7 +112,11 @@ func SaveMemory(db *sql.DB, m Memory) error {
 	}
 
 	// Update FTS index
-	db.Exec("INSERT INTO memories_fts(rowid, title, content, tags, entity_type) SELECT rowid, title, content, tags, entity_type FROM memories WHERE id = ?", m.ID)
+	// Delete stale FTS entry before re-inserting
+	db.Exec("DELETE FROM memories_fts WHERE rowid = (SELECT rowid FROM memories WHERE id = ?)", m.ID)
+	if _, err := db.Exec("INSERT INTO memories_fts(rowid, title, content, tags, entity_type) SELECT rowid, title, content, tags, entity_type FROM memories WHERE id = ?", m.ID); err != nil {
+		return fmt.Errorf("updating FTS index for %s: %w", m.ID, err)
+	}
 
 	return nil
 }
@@ -135,6 +144,9 @@ func ListMemories(db *sql.DB, opts ListOpts) ([]Memory, error) {
 
 	if !opts.IncludeDeprecated {
 		query += " AND deprecated = 0"
+	}
+	if !opts.IncludeArchived {
+		query += " AND archived_at IS NULL"
 	}
 	if opts.EntityType != "" {
 		query += " AND entity_type = ?"

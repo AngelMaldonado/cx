@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -29,6 +30,7 @@ var (
 	memSaveDeprecates string
 	memSaveSource     string
 	memSaveVisibility string
+	memSaveAuthor     string
 )
 
 var memorySaveCmd = &cobra.Command{
@@ -80,6 +82,29 @@ var memoryLinkCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(2),
 	RunE:  runMemoryLink,
 }
+
+var memoryNoteCmd = &cobra.Command{
+	Use:   "note",
+	Short: "Save or update a personal note",
+	RunE:  runMemoryNote,
+}
+
+var memoryForgetCmd = &cobra.Command{
+	Use:   "forget <id>",
+	Short: "Delete a personal note",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runMemoryForget,
+}
+
+// Note flags
+var (
+	memNoteType     string
+	memNoteTitle    string
+	memNoteContent  string
+	memNoteTopicKey string
+	memNoteProjects string
+	memNoteTags     string
+)
 
 // Search/list flags
 var (
@@ -134,6 +159,7 @@ func init() {
 	memorySaveCmd.Flags().StringVar(&memSaveDeprecates, "deprecates", "", "ID of entity this replaces")
 	memorySaveCmd.Flags().StringVar(&memSaveSource, "source", "", "Source agent name")
 	memorySaveCmd.Flags().StringVar(&memSaveVisibility, "visibility", "project", "Visibility: personal or project")
+	memorySaveCmd.Flags().StringVar(&memSaveAuthor, "author", "agent", "Author name")
 
 	// decide flags
 	memoryDecideCmd.Flags().StringVar(&memDecideTitle, "title", "", "Decision title (required)")
@@ -147,6 +173,7 @@ func init() {
 	memoryDecideCmd.Flags().StringVar(&memDecideTags, "tags", "", "Comma-separated tags")
 	memoryDecideCmd.Flags().StringVar(&memDecideDeprecates, "deprecates", "", "ID of entity this replaces")
 	memoryDecideCmd.Flags().StringVar(&memDecideVisibility, "visibility", "project", "Visibility: personal or project")
+	memoryDecideCmd.Flags().StringVar(&memSaveAuthor, "author", "agent", "Author name")
 
 	// session flags
 	memorySessionCmd.Flags().StringVar(&memSessionGoal, "goal", "", "Session goal (required)")
@@ -156,6 +183,7 @@ func init() {
 	memorySessionCmd.Flags().StringVar(&memSessionBlockers, "blockers", "", "Blockers encountered")
 	memorySessionCmd.Flags().StringVar(&memSessionFiles, "files", "", "Comma-separated files modified")
 	memorySessionCmd.Flags().StringVar(&memSessionChange, "change", "", "Active change name")
+	memorySessionCmd.Flags().StringVar(&memSaveAuthor, "author", "agent", "Author name")
 
 	// search flags
 	memorySearchCmd.Flags().StringVar(&memSearchType, "type", "", "Filter by entity type")
@@ -176,6 +204,14 @@ func init() {
 	// link flags
 	memoryLinkCmd.Flags().StringVar(&memLinkRelation, "relation", "", "Relation type: related-to, caused-by, resolved-by, see-also (required)")
 
+	// note flags
+	memoryNoteCmd.Flags().StringVar(&memNoteType, "type", "", "Note type")
+	memoryNoteCmd.Flags().StringVar(&memNoteTitle, "title", "", "Title (required)")
+	memoryNoteCmd.Flags().StringVar(&memNoteContent, "content", "", "Content (required)")
+	memoryNoteCmd.Flags().StringVar(&memNoteTopicKey, "topic-key", "", "Topic key for upsert")
+	memoryNoteCmd.Flags().StringVar(&memNoteProjects, "projects", "", "Comma-separated project names")
+	memoryNoteCmd.Flags().StringVar(&memNoteTags, "tags", "", "Comma-separated tags")
+
 	memoryCmd.AddCommand(memorySaveCmd)
 	memoryCmd.AddCommand(memoryDecideCmd)
 	memoryCmd.AddCommand(memorySessionCmd)
@@ -184,6 +220,8 @@ func init() {
 	memoryCmd.AddCommand(memoryPushCmd)
 	memoryCmd.AddCommand(memoryPullCmd)
 	memoryCmd.AddCommand(memoryLinkCmd)
+	memoryCmd.AddCommand(memoryNoteCmd)
+	memoryCmd.AddCommand(memoryForgetCmd)
 }
 
 func runMemorySave(cmd *cobra.Command, args []string) error {
@@ -208,7 +246,7 @@ func runMemorySave(cmd *cobra.Command, args []string) error {
 		EntityType: memSaveType,
 		Title:      memSaveTitle,
 		Content:    memSaveContent,
-		Author:     "agent",
+		Author:     memSaveAuthor,
 		Source:     memSaveSource,
 		ChangeID:   memSaveChange,
 		FileRefs:   memSaveFiles,
@@ -254,7 +292,7 @@ func runMemoryDecide(cmd *cobra.Command, args []string) error {
 		EntityType: "decision",
 		Title:      memDecideTitle,
 		Content:    content,
-		Author:     "agent",
+		Author:     memSaveAuthor,
 		ChangeID:   memDecideChange,
 		SpecRefs:   memDecideSpecs,
 		Tags:       memDecideTags,
@@ -431,7 +469,7 @@ func runMemoryPush(cmd *cobra.Command, args []string) error {
 	}
 	defer db.Close()
 
-	result, err := memory.Push(db, rootDir, memPushAll)
+	result, err := memory.Push(db, filepath.Join(rootDir, "docs"), memPushAll)
 	if err != nil {
 		ui.PrintError(err.Error())
 		return errExitCode1
@@ -453,7 +491,7 @@ func runMemoryPull(cmd *cobra.Command, args []string) error {
 	}
 	defer db.Close()
 
-	result, err := memory.Pull(db, rootDir)
+	result, err := memory.Pull(db, filepath.Join(rootDir, "docs"))
 	if err != nil {
 		ui.PrintError(err.Error())
 		return errExitCode1
@@ -494,5 +532,64 @@ func runMemoryLink(cmd *cobra.Command, args []string) error {
 		return errExitCode1
 	}
 	ui.PrintSuccess(fmt.Sprintf("linked %s -> %s (%s)", args[0], args[1], memLinkRelation))
+	return nil
+}
+
+func runMemoryNote(cmd *cobra.Command, args []string) error {
+	if memNoteTitle == "" || memNoteContent == "" {
+		ui.PrintError("--title and --content are required")
+		return errExitCode1
+	}
+
+	db, err := memory.OpenPersonalDB()
+	if err != nil {
+		ui.PrintError(fmt.Sprintf("opening personal DB: %v", err))
+		return errExitCode1
+	}
+	defer db.Close()
+
+	id := uuid.New().String()[:8]
+	if memNoteTopicKey != "" {
+		// Upsert by topic key
+		var existingID string
+		err := db.QueryRow("SELECT id FROM personal_notes WHERE topic_key = ?", memNoteTopicKey).Scan(&existingID)
+		if err == nil {
+			id = existingID
+		}
+	}
+
+	_, err = db.Exec(`INSERT OR REPLACE INTO personal_notes (id, topic_key, title, content, tags, projects, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
+		id, memNoteTopicKey, memNoteTitle, memNoteContent, memNoteTags, memNoteProjects)
+	if err != nil {
+		ui.PrintError(fmt.Sprintf("saving note: %v", err))
+		return errExitCode1
+	}
+
+	ui.PrintSuccess(fmt.Sprintf("saved note: %s (%s)", memNoteTitle, id))
+	return nil
+}
+
+func runMemoryForget(cmd *cobra.Command, args []string) error {
+	db, err := memory.OpenPersonalDB()
+	if err != nil {
+		ui.PrintError(fmt.Sprintf("opening personal DB: %v", err))
+		return errExitCode1
+	}
+	defer db.Close()
+
+	id := args[0]
+	result, err := db.Exec("DELETE FROM personal_notes WHERE id = ?", id)
+	if err != nil {
+		ui.PrintError(fmt.Sprintf("deleting note: %v", err))
+		return errExitCode1
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		ui.PrintError(fmt.Sprintf("note %q not found", id))
+		return errExitCode1
+	}
+
+	ui.PrintSuccess(fmt.Sprintf("deleted note: %s", id))
 	return nil
 }
