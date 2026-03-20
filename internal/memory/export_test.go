@@ -13,6 +13,7 @@ func TestPushExportsProjectVisibility(t *testing.T) {
 	defer db.Close()
 
 	tmpDir := t.TempDir()
+	docsDir := filepath.Join(tmpDir, "docs")
 	now := time.Now().UTC().Format(time.RFC3339)
 
 	// Project-visible observation — should be exported
@@ -22,7 +23,7 @@ func TestPushExportsProjectVisibility(t *testing.T) {
 	// Session — should NEVER be exported
 	SaveMemory(db, Memory{ID: "sess-mem", EntityType: "session", Title: "Session mem", Content: "session content", Author: "agent", Visibility: "project", CreatedAt: now})
 
-	result, err := Push(db, tmpDir, false)
+	result, err := Push(db, docsDir, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,19 +33,19 @@ func TestPushExportsProjectVisibility(t *testing.T) {
 	}
 
 	// Verify file exists
-	obsFile := filepath.Join(tmpDir, "memory", "observations", "pub-obs.md")
+	obsFile := filepath.Join(tmpDir, "docs", "memory", "observations", "pub-obs.md")
 	if _, err := os.Stat(obsFile); os.IsNotExist(err) {
 		t.Error("expected pub-obs.md to be created")
 	}
 
 	// Verify personal was NOT exported
-	privFile := filepath.Join(tmpDir, "memory", "observations", "priv-obs.md")
+	privFile := filepath.Join(tmpDir, "docs", "memory", "observations", "priv-obs.md")
 	if _, err := os.Stat(privFile); !os.IsNotExist(err) {
 		t.Error("personal observation should not be exported")
 	}
 
 	// Verify session was NOT exported
-	sessFile := filepath.Join(tmpDir, "memory", "observations", "sess-mem.md")
+	sessFile := filepath.Join(tmpDir, "docs", "memory", "observations", "sess-mem.md")
 	if _, err := os.Stat(sessFile); !os.IsNotExist(err) {
 		t.Error("session memory should not be exported")
 	}
@@ -61,14 +62,15 @@ func TestPushIdempotent(t *testing.T) {
 	defer db.Close()
 
 	tmpDir := t.TempDir()
+	docsDir := filepath.Join(tmpDir, "docs")
 	now := time.Now().UTC().Format(time.RFC3339)
 	SaveMemory(db, Memory{ID: "idem-obs", EntityType: "observation", Title: "Idempotent", Content: "test", Author: "agent", Visibility: "project", CreatedAt: now})
 
 	// First push
-	Push(db, tmpDir, false)
+	Push(db, docsDir, false)
 
 	// Second push without --all should skip (shared_at is set)
-	result, err := Push(db, tmpDir, false)
+	result, err := Push(db, docsDir, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +79,7 @@ func TestPushIdempotent(t *testing.T) {
 	}
 
 	// Push with --all re-exports
-	result, err = Push(db, tmpDir, true)
+	result, err = Push(db, docsDir, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,13 +93,14 @@ func TestPullImportsNew(t *testing.T) {
 	defer db.Close()
 
 	tmpDir := t.TempDir()
-	obsDir := filepath.Join(tmpDir, "memory", "observations")
+	docsDir := filepath.Join(tmpDir, "docs")
+	obsDir := filepath.Join(docsDir, "memory", "observations")
 	os.MkdirAll(obsDir, 0o755)
 
 	content := "---\nid: imported-1\nentity_type: observation\ntitle: Imported finding\nauthor: teammate\nvisibility: project\ncreated_at: 2026-03-20T00:00:00Z\n---\n\nSome discovery from a teammate"
 	os.WriteFile(filepath.Join(obsDir, "imported-1.md"), []byte(content), 0o644)
 
-	result, err := Pull(db, tmpDir)
+	result, err := Pull(db, docsDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,18 +122,19 @@ func TestPullConflictDetection(t *testing.T) {
 	defer db.Close()
 
 	tmpDir := t.TempDir()
+	docsDir := filepath.Join(tmpDir, "docs")
 	now := time.Now().UTC().Format(time.RFC3339)
 
 	// Save locally with one content
 	SaveMemory(db, Memory{ID: "conflict-1", EntityType: "observation", Title: "Original", Content: "local version", Author: "agent", Visibility: "project", CreatedAt: now})
 
 	// Write file with different content
-	obsDir := filepath.Join(tmpDir, "memory", "observations")
+	obsDir := filepath.Join(docsDir, "memory", "observations")
 	os.MkdirAll(obsDir, 0o755)
 	content := "---\nid: conflict-1\nentity_type: observation\ntitle: Original\nauthor: teammate\nvisibility: project\ncreated_at: 2026-03-20T00:00:00Z\n---\n\nremote version"
 	os.WriteFile(filepath.Join(obsDir, "conflict-1.md"), []byte(content), 0o644)
 
-	result, err := Pull(db, tmpDir)
+	result, err := Pull(db, docsDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,14 +151,15 @@ func TestPullSkipsSameContent(t *testing.T) {
 	defer db.Close()
 
 	tmpDir := t.TempDir()
+	docsDir := filepath.Join(tmpDir, "docs")
 	now := time.Now().UTC().Format(time.RFC3339)
 
 	// Save and push
 	SaveMemory(db, Memory{ID: "same-1", EntityType: "observation", Title: "Same title", Content: "same body", Author: "agent", Visibility: "project", CreatedAt: now})
-	Push(db, tmpDir, false)
+	Push(db, docsDir, false)
 
 	// Pull — should skip since content matches
-	result, err := Pull(db, tmpDir)
+	result, err := Pull(db, docsDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,12 +176,13 @@ func TestExportedFileHasValidFrontmatter(t *testing.T) {
 	defer db.Close()
 
 	tmpDir := t.TempDir()
+	docsDir := filepath.Join(tmpDir, "docs")
 	now := time.Now().UTC().Format(time.RFC3339)
 	SaveMemory(db, Memory{ID: "fm-test", EntityType: "decision", Title: "Use SQLite", Content: "We decided to use SQLite", Author: "agent", Tags: "database,architecture", Visibility: "project", CreatedAt: now})
 
-	Push(db, tmpDir, false)
+	Push(db, docsDir, false)
 
-	data, err := os.ReadFile(filepath.Join(tmpDir, "memory", "decisions", "fm-test.md"))
+	data, err := os.ReadFile(filepath.Join(tmpDir, "docs", "memory", "decisions", "fm-test.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
