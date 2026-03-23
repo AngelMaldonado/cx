@@ -9,8 +9,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/amald/cx/internal/memory"
-	"github.com/amald/cx/internal/tui/data"
+	"github.com/AngelMaldonado/cx/internal/memory"
+	"github.com/AngelMaldonado/cx/internal/tui/data"
 )
 
 // graphItem is one row in the flat navigable list used internally by GraphModel.

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/amald/cx/internal/templates"
+	"github.com/AngelMaldonado/cx/internal/templates"
 )
 
 // Subagent defines a CX framework subagent that gets generated for each AI tool.

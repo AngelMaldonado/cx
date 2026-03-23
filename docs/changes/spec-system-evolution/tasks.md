@@ -411,7 +411,7 @@ Add `changeCmd.AddCommand(changeSpecSyncCmd)` in `init()`.
   - tasks: DONE if HasTasks; READY if HasProposal && HasDesign; else BLOCKED
   - verify: DONE if VerifyStatus==PASS; READY if HasTasks; else BLOCKED
 - Print the advisory states alongside the existing checkmarks.
-- Import `"github.com/amald/cx/internal/instructions"`.
+- Import `"github.com/AngelMaldonado/cx/internal/instructions"`.
 
 **Depends on:** TASK-06 (ChangeInfo.VerifyStatus, SyncedDeltas), TASK-04 (ArtifactGraph and DependenciesOf).
 
@@ -445,7 +445,7 @@ Add `changeCmd.AddCommand(changeSpecSyncCmd)` in `init()`.
   }
   ui.Pause(200 * time.Millisecond)
   ```
-- Add import `"github.com/amald/cx/internal/templates"`.
+- Add import `"github.com/AngelMaldonado/cx/internal/templates"`.
 - Renumber subsequent step comments (git hooks → Step 7, register → Step 8, API keys/MCP → Step 9, first-time prefs → Step 10, summary → Step 11).
 - In the summary block at the bottom, add `ui.PrintItem("config", "cx.yaml")` after the direction item.
 
@@ -486,7 +486,7 @@ if _, statErr := os.Stat(cxYamlPath); statErr == nil {
 // if file absent: no check, no warning (cx.yaml is optional)
 ```
 
-Add import `"github.com/amald/cx/internal/config"`.
+Add import `"github.com/AngelMaldonado/cx/internal/config"`.
 
 **Depends on:** TASK-03 (internal/config, whose Load returns error for unrecognized keys).
 

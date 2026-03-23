@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/amald/cx/internal/memory"
+	"github.com/AngelMaldonado/cx/internal/memory"
 )
 
 // Loader wraps the three SQLite databases and provides data access for TUI views.

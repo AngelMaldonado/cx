@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/amald/cx/internal/skills"
-	"github.com/amald/cx/internal/templates"
+	"github.com/AngelMaldonado/cx/internal/skills"
+	"github.com/AngelMaldonado/cx/internal/templates"
 )
 
 type Agent struct {

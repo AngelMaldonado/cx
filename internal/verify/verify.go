@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/amald/cx/internal/templates"
+	"github.com/AngelMaldonado/cx/internal/templates"
 )
 
 var reqPattern = regexp.MustCompile(`^### (REQ-[A-Za-z0-9-]+):`)

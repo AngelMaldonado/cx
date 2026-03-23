@@ -1,7 +1,7 @@
 .PHONY: build install release-dry-run clean
 
 build:
-	go build -ldflags "-X github.com/amald/cx/cmd.Version=dev" -o cx ./main.go
+	go build -ldflags "-X github.com/AngelMaldonado/cx/cmd.Version=dev" -o cx ./main.go
 
 install: build
 	cp cx /usr/local/bin/cx

@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/amald/cx/internal/agents"
-	"github.com/amald/cx/internal/config"
-	"github.com/amald/cx/internal/memory"
-	"github.com/amald/cx/internal/project"
+	"github.com/AngelMaldonado/cx/internal/agents"
+	"github.com/AngelMaldonado/cx/internal/config"
+	"github.com/AngelMaldonado/cx/internal/memory"
+	"github.com/AngelMaldonado/cx/internal/project"
 )
 
 type Severity int

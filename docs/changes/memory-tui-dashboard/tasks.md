@@ -5,7 +5,7 @@ type: tasks
 
 ## Implementation Notes
 
-All tasks execute in the `github.com/amald/cx` module. The TUI is entirely in-process — no servers, no background processes. Phase 1 must be fully complete before Phase 2 begins; Phase 2 must be complete before Phase 3 begins. Within a phase, tasks with no listed dependencies can run in parallel.
+All tasks execute in the `github.com/AngelMaldonado/cx` module. The TUI is entirely in-process — no servers, no background processes. Phase 1 must be fully complete before Phase 2 begins; Phase 2 must be complete before Phase 3 begins. Within a phase, tasks with no listed dependencies can run in parallel.
 
 Key patterns to follow:
 - All DB access goes through `internal/memory` API functions; direct SQL is only used where no API function exists (documented per task).

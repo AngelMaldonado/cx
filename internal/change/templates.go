@@ -3,7 +3,7 @@ package change
 import (
 	"strings"
 
-	"github.com/amald/cx/internal/templates"
+	"github.com/AngelMaldonado/cx/internal/templates"
 )
 
 func ProposalTemplate(name string) string {

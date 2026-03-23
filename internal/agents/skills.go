@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/amald/cx/internal/skills"
+	"github.com/AngelMaldonado/cx/internal/skills"
 )
 
 // WriteSkills writes all embedded skills to the agent's skills directory

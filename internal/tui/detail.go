@@ -11,7 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/amald/cx/internal/memory"
+	"github.com/AngelMaldonado/cx/internal/memory"
 )
 
 // CloseDetailMsg is sent when the user presses esc or q inside the detail

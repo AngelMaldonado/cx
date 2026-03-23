@@ -13,7 +13,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/amald/cx/internal/tui/data"
+	"github.com/AngelMaldonado/cx/internal/tui/data"
 )
 
 // Tab identifies which view is currently active.

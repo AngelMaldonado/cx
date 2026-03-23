@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/amald/cx/internal/config"
-	"github.com/amald/cx/internal/templates"
+	"github.com/AngelMaldonado/cx/internal/config"
+	"github.com/AngelMaldonado/cx/internal/templates"
 )
 
 // Build returns a formatted multi-section string for a given artifact.

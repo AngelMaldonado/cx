@@ -3,9 +3,9 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/amald/cx/internal/brainstorm"
-	"github.com/amald/cx/internal/project"
-	"github.com/amald/cx/internal/ui"
+	"github.com/AngelMaldonado/cx/internal/brainstorm"
+	"github.com/AngelMaldonado/cx/internal/project"
+	"github.com/AngelMaldonado/cx/internal/ui"
 	"github.com/spf13/cobra"
 )
 
