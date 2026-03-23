@@ -11,7 +11,7 @@ class Cx < Formula
   on_macos do
     if Hardware::CPU.intel?
       url "https://github.com/AngelMaldonado/cx/releases/download/v0.1.0/cx_0.1.0_darwin_amd64.tar.gz"
-      sha256 "13c4b5cfc635b6d510b196c10866852f6df98c6277a86f10a9cf569a35dcc1bb"
+      sha256 "b9cd48670adc4ce959d94e3d5bd31cb59f9fd98dd1a3d04b7efeda2c9b45e638"
 
       define_method(:install) do
         bin.install "cx"
@@ -19,7 +19,7 @@ class Cx < Formula
     end
     if Hardware::CPU.arm?
       url "https://github.com/AngelMaldonado/cx/releases/download/v0.1.0/cx_0.1.0_darwin_arm64.tar.gz"
-      sha256 "294cdf762f98980f22e72be223d128aee12b858b003ee9ce0e8b3a779efb9d42"
+      sha256 "b307afa7a2b268bd5ee957b4d050450d4e6594dc507b314024134ba0bbf50940"
 
       define_method(:install) do
         bin.install "cx"
@@ -30,14 +30,14 @@ class Cx < Formula
   on_linux do
     if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
       url "https://github.com/AngelMaldonado/cx/releases/download/v0.1.0/cx_0.1.0_linux_amd64.tar.gz"
-      sha256 "ed78b54e7f8b571415064fc0ae77e9ee5d54f54f696ddaed03865e1908a25f58"
+      sha256 "83c8affe0eb4af60f847b293662c8963780110433dfc4b2a3b863b78254395a8"
       define_method(:install) do
         bin.install "cx"
       end
     end
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
       url "https://github.com/AngelMaldonado/cx/releases/download/v0.1.0/cx_0.1.0_linux_arm64.tar.gz"
-      sha256 "2eaa1fdb2d132f75afbb802c74baed02120c2a2c05acd06a40c3705e8eac1bd2"
+      sha256 "e0e2f3fe68b8a0b7f0b3a0c8a6f0d687e2de40e1ab75f370a30ae56caf638c32"
       define_method(:install) do
         bin.install "cx"
       end
