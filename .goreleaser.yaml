@@ -43,6 +43,14 @@ brews:
     repository:
       owner: AngelMaldonado
       name: cx
+      branch: "homebrew-formula/{{ .Version }}"
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+      pull_request:
+        enabled: true
+        base:
+          owner: AngelMaldonado
+          name: cx
+          branch: main
     directory: Formula
     homepage: "https://github.com/AngelMaldonado/cx"
     description: "CX — AI-native project knowledge system"
