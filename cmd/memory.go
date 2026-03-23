@@ -33,6 +33,9 @@ var (
 	memSaveAuthor     string
 )
 
+// Deprecate flags
+var memDeprecateForce bool
+
 var memorySaveCmd = &cobra.Command{
 	Use:   "save",
 	Short: "Save an observation or agent interaction",
@@ -94,6 +97,13 @@ var memoryForgetCmd = &cobra.Command{
 	Short: "Delete a personal note",
 	Args:  cobra.ExactArgs(1),
 	RunE:  runMemoryForget,
+}
+
+var memoryDeprecateCmd = &cobra.Command{
+	Use:   "deprecate <id>",
+	Short: "Mark a memory as deprecated",
+	Args:  cobra.ExactArgs(1),
+	RunE:  runMemoryDeprecate,
 }
 
 // Note flags
@@ -222,6 +232,11 @@ func init() {
 	memoryCmd.AddCommand(memoryLinkCmd)
 	memoryCmd.AddCommand(memoryNoteCmd)
 	memoryCmd.AddCommand(memoryForgetCmd)
+
+	// deprecate flags
+	memoryDeprecateCmd.Flags().BoolVarP(&memDeprecateForce, "force", "y", false, "Skip confirmation prompt")
+
+	memoryCmd.AddCommand(memoryDeprecateCmd)
 }
 
 func runMemorySave(cmd *cobra.Command, args []string) error {
@@ -591,5 +606,45 @@ func runMemoryForget(cmd *cobra.Command, args []string) error {
 	}
 
 	ui.PrintSuccess(fmt.Sprintf("deleted note: %s", id))
+	return nil
+}
+
+func runMemoryDeprecate(cmd *cobra.Command, args []string) error {
+	rootDir, err := project.IsGitRepo()
+	if err != nil {
+		ui.PrintError("not a git repository")
+		return errExitCode1
+	}
+	db, err := memory.OpenProjectDB(rootDir)
+	if err != nil {
+		ui.PrintError(fmt.Sprintf("opening memory DB: %v", err))
+		return errExitCode1
+	}
+	defer db.Close()
+
+	id := args[0]
+	m, err := memory.GetMemory(db, id)
+	if err != nil {
+		ui.PrintError(fmt.Sprintf("memory %q not found", id))
+		return errExitCode1
+	}
+
+	if !memDeprecateForce {
+		confirmed, err := ui.NewConfirmPrompt(fmt.Sprintf("Deprecate memory %q (%s)?", m.Title, id))
+		if err != nil {
+			return err
+		}
+		if !confirmed {
+			fmt.Println("Cancelled.")
+			return nil
+		}
+	}
+
+	if err := memory.DeprecateMemory(db, id); err != nil {
+		ui.PrintError(err.Error())
+		return errExitCode1
+	}
+
+	ui.PrintSuccess(fmt.Sprintf("deprecated memory: %s (%s)", m.Title, id))
 	return nil
 }

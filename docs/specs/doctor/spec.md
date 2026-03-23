@@ -103,6 +103,19 @@ Validates that agent skill files are up-to-date:
 | Skill files match the binary's built-in versions | Warning | Yes (`cx sync`) |
 | Each skill has all four required sections (Description, Triggers, Steps, Rules) | Warning | No |
 
+### 8. Dashboard Dependencies (Go projects only)
+
+Validates that the `cx dashboard` TUI dependencies are present in `go.mod` (contributor health check — only relevant when building `cx` from source):
+
+| Check | Severity | Auto-fixable |
+|-------|----------|-------------|
+| `go.mod` contains `github.com/charmbracelet/bubbletea` | Warning | No |
+| `go.mod` contains `github.com/charmbracelet/bubbles` | Warning | No |
+| `go.mod` contains `github.com/charmbracelet/lipgloss` | Warning | No |
+| `go.mod` contains `github.com/charmbracelet/glamour` | Warning | No |
+
+This check only runs when a `go.mod` file is detected in the project root. It is a warning (not an error) — the dashboard binary still distributes as a pre-compiled static binary; this check only matters for contributors building `cx` from source.
+
 ---
 
 ## Output Format

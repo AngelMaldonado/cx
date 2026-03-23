@@ -846,9 +846,91 @@ Memory is loaded via `cx memory search` and `cx memory list` commands against `.
 
 See [search spec](../search/spec.md) for the full unified search interface.
 
+### Deprecation
+
+| Command | Action |
+|---------|--------|
+| `cx memory deprecate <id>` | Set `deprecated=1` on an existing memory row in `.cx/memory.db`; errors if the ID is not found |
+
 ### Context Priming (called by Primer, not Master)
 
 | Command | Action |
 |---------|--------|
 | `cx context --mode <mode>` | Return the context map for a session mode |
 | `cx context --load <resource> [name]` | Load full content of a specific resource |
+
+---
+
+## TUI Dashboard
+
+`cx dashboard` (aliases: `dash`, `ui`) opens a full-screen Bubble Tea TUI for browsing project memory, session history, agent runs, memory links, cross-project data, sync status, and personal notes. It is a direct developer entry point — like `cx init` and `cx upgrade`, it is meant to be invoked by the developer, not by agents.
+
+### Overview
+
+- **Read-only** by default: all data is fetched from `.cx/memory.db`, `~/.cx/index.db`, and `~/.cx/memory.db` (personal) via the `internal/memory` Go API
+- **Two write actions**: push (`p`) and pull (`l`) in the Sync view shell out to `cx memory push` / `cx memory pull`
+- **One limited write action**: `d` in the Memories Browser shells out to `cx memory deprecate <id>` (with a confirmation prompt)
+- Polls all three databases every 5 seconds for live updates
+- Responsive layout: two-pane split (list + preview) at 80+ columns; single-pane below 80 columns; "terminal too small" guard below 40×10
+
+### Views (8 tabs, accessed by number keys 1–8)
+
+| Key | View | Description |
+|-----|------|-------------|
+| `1` | Home / Overview | Stats summary (counts by entity type) + latest session + recent agent runs |
+| `2` | Memories Browser | Filterable/searchable list of observations and decisions with side-by-side glamour preview |
+| `3` | Sessions Timeline | Sessions ordered by `started_at` DESC; detail panel shows goal and summary |
+| `4` | Agent Runs | All agent runs grouped by session; expandable/collapsible session headers |
+| `5` | Sync Status | Pending export count, last push/pull timestamps, `p`/`l` to push/pull |
+| `6` | Personal Notes | Notes from `~/.cx/memory.db`; read-only (no deprecation) |
+| `7` | Memory Graph | Adjacency list of all memory links; `enter` navigates to linked memory in View 2 |
+| `8` | Cross-Project | Federated search across all registered projects via `~/.cx/index.db` |
+
+### Keyboard Shortcuts
+
+**Global (all views):**
+
+| Key | Action |
+|-----|--------|
+| `1`–`8` | Switch to view by number |
+| `tab` / `shift+tab` | Cycle through views |
+| `q` / `ctrl+c` | Quit |
+| `r` | Force refresh (reload data immediately) |
+| `?` | Toggle help overlay |
+
+**Navigation (most views):**
+
+| Key | Action |
+|-----|--------|
+| `j` / `↓` | Move cursor down |
+| `k` / `↑` | Move cursor up |
+| `g` / `home` | Jump to top |
+| `G` / `end` | Jump to bottom |
+| `ctrl+d` | Load 200 more rows (Memories, Sessions) |
+
+**Memories Browser (View 2):**
+
+| Key | Action |
+|-----|--------|
+| `/` | Activate FTS5 search |
+| `esc` | Clear search / cancel |
+| `f` | Toggle entity-type filter bar |
+| `d` | Deprecate selected memory (with confirmation) |
+| `enter` | Open full-screen detail overlay |
+| `J` / `K` | Scroll preview pane |
+
+**Sync view (View 5):**
+
+| Key | Action |
+|-----|--------|
+| `p` | Push unshared project memories (`cx memory push`) |
+| `P` | Re-push all project memories (`cx memory push --all`) |
+| `l` | Pull from `docs/memory/` (`cx memory pull`) |
+
+**Detail overlay:**
+
+| Key | Action |
+|-----|--------|
+| `esc` / `q` | Close overlay, return to view |
+| `j` / `k` | Scroll content |
+| `d` | Deprecate (only for memories) |

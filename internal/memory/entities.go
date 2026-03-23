@@ -236,13 +236,22 @@ func SaveAgentRun(db *sql.DB, run AgentRun) error {
 }
 
 func ListAgentRuns(db *sql.DB, sessionID string) ([]AgentRun, error) {
+	return ListAgentRunsLimit(db, sessionID, 100)
+}
+
+// ListAgentRunsLimit returns agent runs filtered by sessionID (empty = all),
+// ordered by created_at DESC, capped at limit rows (0 = use default of 100).
+func ListAgentRunsLimit(db *sql.DB, sessionID string, limit int) ([]AgentRun, error) {
+	if limit <= 0 {
+		limit = 100
+	}
 	query := "SELECT id, COALESCE(session_id,''), agent_type, COALESCE(prompt_summary,''), COALESCE(result_status,''), COALESCE(result_summary,''), COALESCE(artifacts,''), COALESCE(duration_ms,0), created_at FROM agent_runs"
 	var args []interface{}
 	if sessionID != "" {
 		query += " WHERE session_id = ?"
 		args = append(args, sessionID)
 	}
-	query += " ORDER BY created_at DESC"
+	query += fmt.Sprintf(" ORDER BY created_at DESC LIMIT %d", limit)
 
 	rows, err := db.Query(query, args...)
 	if err != nil {
@@ -272,4 +281,205 @@ func SaveMemoryLink(db *sql.DB, link MemoryLink) error {
 		return fmt.Errorf("saving memory link: %w", err)
 	}
 	return nil
+}
+
+// ListMemoryLinks returns memory links ordered by from_id, limited to 500 rows.
+// Returns an empty slice (not an error) if the table is empty.
+func ListMemoryLinks(db *sql.DB) ([]MemoryLink, error) {
+	rows, err := db.Query(`SELECT from_id, to_id, relation_type, COALESCE(created_at,'')
+		FROM memory_links ORDER BY from_id LIMIT 500`)
+	if err != nil {
+		return nil, fmt.Errorf("listing memory links: %w", err)
+	}
+	defer rows.Close()
+
+	var links []MemoryLink
+	for rows.Next() {
+		var l MemoryLink
+		if err := rows.Scan(&l.FromID, &l.ToID, &l.RelationType, &l.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scanning memory link row: %w", err)
+		}
+		links = append(links, l)
+	}
+	return links, rows.Err()
+}
+
+// DeprecateMemory marks the memory with the given id as deprecated (deprecated=1).
+// It returns an error if the memory does not exist or is already deprecated.
+// After updating the row it removes the FTS entry so deprecated memories no
+// longer appear in full-text search results.
+func DeprecateMemory(db *sql.DB, id string) error {
+	result, err := db.Exec(
+		"UPDATE memories SET deprecated = 1, updated_at = datetime('now') WHERE id = ? AND deprecated = 0",
+		id,
+	)
+	if err != nil {
+		return fmt.Errorf("deprecating memory %s: %w", id, err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("checking rows affected: %w", err)
+	}
+	if rows == 0 {
+		// Distinguish between not found and already deprecated
+		var count int
+		if err := db.QueryRow("SELECT COUNT(*) FROM memories WHERE id = ?", id).Scan(&count); err != nil {
+			return fmt.Errorf("checking memory existence: %w", err)
+		}
+		if count == 0 {
+			return fmt.Errorf("memory %q not found", id)
+		}
+		return fmt.Errorf("memory %q is already deprecated", id)
+	}
+
+	// Remove from FTS index so deprecated memories don't appear in searches.
+	db.Exec("DELETE FROM memories_fts WHERE rowid = (SELECT rowid FROM memories WHERE id = ?)", id)
+
+	return nil
+}
+
+// SessionListOpts controls filtering for ListSessions.
+type SessionListOpts struct {
+	ChangeName string
+	Mode       string // build, continue, plan
+	Recent     time.Duration
+	Limit      int
+}
+
+// ListSessions returns sessions ordered by started_at DESC.
+// Filters by ChangeName, Mode, and Recent if non-zero.
+// Defaults to a limit of 50 if Limit is not specified.
+func ListSessions(db *sql.DB, opts SessionListOpts) ([]Session, error) {
+	query := `SELECT id, mode, COALESCE(change_name,''), COALESCE(goal,''),
+		started_at, COALESCE(ended_at,''), COALESCE(summary,'')
+		FROM sessions WHERE 1=1`
+	var args []interface{}
+
+	if opts.ChangeName != "" {
+		query += " AND change_name = ?"
+		args = append(args, opts.ChangeName)
+	}
+	if opts.Mode != "" {
+		query += " AND mode = ?"
+		args = append(args, opts.Mode)
+	}
+	if opts.Recent > 0 {
+		cutoff := time.Now().Add(-opts.Recent).UTC().Format(time.RFC3339)
+		query += " AND started_at >= ?"
+		args = append(args, cutoff)
+	}
+	query += " ORDER BY started_at DESC"
+
+	limit := opts.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+	query += fmt.Sprintf(" LIMIT %d", limit)
+
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("listing sessions: %w", err)
+	}
+	defer rows.Close()
+
+	var sessions []Session
+	for rows.Next() {
+		var s Session
+		if err := rows.Scan(&s.ID, &s.Mode, &s.ChangeName, &s.Goal,
+			&s.StartedAt, &s.EndedAt, &s.Summary); err != nil {
+			return nil, fmt.Errorf("scanning session row: %w", err)
+		}
+		sessions = append(sessions, s)
+	}
+	return sessions, rows.Err()
+}
+
+// PersonalNote mirrors the personal_notes table in ~/.cx/memory.db.
+type PersonalNote struct {
+	ID        string
+	TopicKey  string
+	Title     string
+	Content   string
+	Tags      string
+	Projects  string
+	CreatedAt string
+	UpdatedAt string
+}
+
+// ListPersonalNotes returns personal notes ordered by updated_at DESC.
+// Defaults to a limit of 50 if limit is <= 0.
+func ListPersonalNotes(db *sql.DB, limit int) ([]PersonalNote, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	query := fmt.Sprintf(`SELECT id, COALESCE(topic_key,''), title, content,
+		COALESCE(tags,''), COALESCE(projects,''), created_at, COALESCE(updated_at,'')
+		FROM personal_notes ORDER BY updated_at DESC LIMIT %d`, limit)
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("listing personal notes: %w", err)
+	}
+	defer rows.Close()
+
+	var notes []PersonalNote
+	for rows.Next() {
+		var n PersonalNote
+		if err := rows.Scan(&n.ID, &n.TopicKey, &n.Title, &n.Content,
+			&n.Tags, &n.Projects, &n.CreatedAt, &n.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scanning personal note row: %w", err)
+		}
+		notes = append(notes, n)
+	}
+	return notes, rows.Err()
+}
+
+// MemoryStats holds aggregate counts for the dashboard home stats panel.
+type MemoryStats struct {
+	TotalObservations int
+	TotalDecisions    int
+	TotalSessions     int
+	TotalAgentRuns    int
+	TotalLinks        int
+}
+
+// CountMemories returns aggregate counts from memories (by entity_type),
+// sessions, agent_runs, and memory_links for the dashboard home view.
+func CountMemories(db *sql.DB) (MemoryStats, error) {
+	var stats MemoryStats
+
+	// Count non-deprecated memories grouped by entity_type
+	rows, err := db.Query(`SELECT entity_type, COUNT(*) FROM memories WHERE deprecated = 0 GROUP BY entity_type`)
+	if err != nil {
+		return stats, fmt.Errorf("counting memories by type: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var entityType string
+		var count int
+		if err := rows.Scan(&entityType, &count); err != nil {
+			return stats, fmt.Errorf("scanning memory count row: %w", err)
+		}
+		switch entityType {
+		case "observation":
+			stats.TotalObservations = count
+		case "decision":
+			stats.TotalDecisions = count
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return stats, err
+	}
+
+	if err := db.QueryRow(`SELECT COUNT(*) FROM sessions`).Scan(&stats.TotalSessions); err != nil {
+		return stats, fmt.Errorf("counting sessions: %w", err)
+	}
+	if err := db.QueryRow(`SELECT COUNT(*) FROM agent_runs`).Scan(&stats.TotalAgentRuns); err != nil {
+		return stats, fmt.Errorf("counting agent runs: %w", err)
+	}
+	if err := db.QueryRow(`SELECT COUNT(*) FROM memory_links`).Scan(&stats.TotalLinks); err != nil {
+		return stats, fmt.Errorf("counting memory links: %w", err)
+	}
+
+	return stats, nil
 }

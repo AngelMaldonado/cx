@@ -3,3 +3,4 @@ cx
 .DS_Store
 HOME
 .env
+dist/

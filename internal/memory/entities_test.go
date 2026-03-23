@@ -133,6 +133,39 @@ func TestAgentRunCRUD(t *testing.T) {
 	}
 }
 
+func TestDeprecateMemory(t *testing.T) {
+	db := openTestDB(t)
+	defer db.Close()
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	m := Memory{ID: "dep-me", EntityType: "observation", Title: "To be deprecated", Content: "c", Author: "agent", Visibility: "project", CreatedAt: now}
+	if err := SaveMemory(db, m); err != nil {
+		t.Fatal(err)
+	}
+
+	// Deprecate the memory
+	if err := DeprecateMemory(db, "dep-me"); err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	got, err := GetMemory(db, "dep-me")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Deprecated != 1 {
+		t.Error("expected memory to be deprecated")
+	}
+
+	// Deprecating again should return an error
+	if err := DeprecateMemory(db, "dep-me"); err == nil {
+		t.Error("expected error when deprecating already-deprecated memory")
+	}
+
+	// Non-existent ID should return an error
+	if err := DeprecateMemory(db, "does-not-exist"); err == nil {
+		t.Error("expected error for non-existent memory id")
+	}
+}
+
 func TestMemoryLink(t *testing.T) {
 	db := openTestDB(t)
 	defer db.Close()

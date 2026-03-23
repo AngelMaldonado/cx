@@ -1,0 +1,53 @@
+version: 2
+
+project_name: cx
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: cx
+    main: ./main.go
+    binary: cx
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/amald/cx/cmd.Version={{.Version}}
+
+archives:
+  - id: cx
+    ids:
+      - cx
+    formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+brews:
+  - name: cx
+    repository:
+      owner: AngelMaldonado
+      name: cx
+    directory: Formula
+    homepage: "https://github.com/AngelMaldonado/cx"
+    description: "CX — AI-native project knowledge system"
+    license: "MIT"
+    install: |
+      bin.install "cx"
+    test: |
+      system "#{bin}/cx", "--version"

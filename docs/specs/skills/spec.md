@@ -1,6 +1,8 @@
 # Spec: Skill Protocol
 
-Skills are markdown files that teach coding agents how to use the `cx` binary. They are the only interface between agents and the system — developers never call `cx` commands directly (except `cx init` and `cx dashboard`).
+Skills are markdown files that teach coding agents how to use the `cx` binary. They are the only interface between agents and the system — developers never call `cx` commands directly (except `cx init`, `cx upgrade`, and `cx dashboard`).
+
+`cx dashboard` is the interactive TUI entry point for browsing memory, sessions, agent runs, sync status, and cross-project data. It is invoked directly by the developer (not by agents), the same as `cx init`. See the [memory spec](../memory/spec.md#tui-dashboard) for the full dashboard reference.
 
 See [catalog/](catalog/) for the full content of each skill.
 
