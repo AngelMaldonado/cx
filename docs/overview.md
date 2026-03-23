@@ -49,13 +49,13 @@ Developer → Master (orchestrator) → dispatches agents → read skills → ca
                 │
                 └──→ MCP servers (Linear, etc.) → external APIs
 
-Developer → cx dashboard (TUI) → read-only view of docs/ + memory
+Developer → cx dashboard (TUI) → browse memory, sessions, agent runs, sync status
 ```
 
 The binary has three entry points for developers:
 - `cx init` — one-time project setup, generates agent configs and skills
 - `cx upgrade` — updates the binary via Homebrew and syncs skills across all registered projects
-- `cx dashboard` — TUI for visibility into specs, changes, memory, team sync
+- `cx dashboard` — interactive TUI for browsing memory, sessions, agent runs, memory links, cross-project data, and sync status (8 views; aliases: `dash`, `ui`)
 
 Everything else is agent-driven: brainstorming new features, decomposing work into changes, tracking progress, updating specs, and saving institutional knowledge.
 

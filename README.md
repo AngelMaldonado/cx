@@ -137,6 +137,52 @@ CX coordinates a Master agent with specialized subagents:
 - **Reviewer** — reviews code and docs for quality, correctness, and security (read-only)
 - **Executor agents** — project-specific experts (e.g., go-expert, react-expert) defined by the developer
 
+## Working modes
+
+Every CX session runs in one of three modes. The Master agent classifies the developer's opening message and activates the corresponding workflow.
+
+| Mode | When to use | Output |
+|------|-------------|--------|
+| **PLAN** | "how should we approach...", "let's design...", "brainstorm..." | A masterfile at `docs/masterfiles/` |
+| **BUILD** | "implement...", "add...", "build...", "create..." | A completed change in `docs/changes/<name>/` |
+| **CONTINUE** | "continue working on...", "pick up where we left off", "resume..." | Progress on an active change |
+
+### PLAN
+
+For high-level thinking and design — without writing a line of code. Context is intentionally minimal (project overview only) to encourage clean-slate thinking.
+
+1. Primer loads project overview
+2. Requirements gathered via conversation
+3. Planner creates a masterfile at `docs/masterfiles/<name>.md`
+4. Iterate on the masterfile until the design is solid
+5. Transition to BUILD (only when the developer explicitly approves)
+
+### BUILD
+
+For creating something new — a feature, fix, or integration. Follows the full change lifecycle from planning through implementation and review.
+
+1. Primer loads context (spec index, active decisions, recent observations)
+2. Requirements gathered, plan approved
+3. `cx decompose <name>` scaffolds `docs/changes/<name>/` with proposal.md, design.md, tasks.md
+4. Planner fills in the change docs; executors work through the task list
+5. Reviewer gates the work; on pass, `cx change archive <name>` merges delta specs into canonical specs
+
+Dependency graph enforced by the Master:
+
+```
+proposal → specs + design → tasks → implement → verify → archive
+```
+
+### CONTINUE
+
+For resuming existing work. State is recovered from change docs, memory, and session history — no need to re-explain context.
+
+1. Primer loads the active change (proposal, design, tasks, last session summary, change-scoped memory)
+2. `cx change status` shows what's done and what remains
+3. Executor picks up where the last session left off, guided by the `--next` field from the prior session summary
+
+The `--next` field written by `cx memory session` at the end of each session is the critical bridge — it tells the next session exactly what to do first.
+
 ## Memory system
 
 SQLite-backed persistence for project knowledge. Memories survive across sessions and sync with the team via git.
@@ -158,11 +204,45 @@ SQLite-backed persistence for project knowledge. Memories survive across session
 
 ### Architecture
 
-Three SQLite databases:
+Three SQLite databases, each with a distinct scope:
 
-- **`.cx/memory.db`** (per-project) — observations, decisions, sessions, agent runs. Created by `cx init`.
-- **`~/.cx/index.db`** (global) — project registry + cross-project search index. Replaces `projects.json`.
-- **`~/.cx/memory.db`** (personal) — private notes that don't sync with the team.
+```
+<project>/.cx/memory.db          ~/.cx/index.db          ~/.cx/memory.db
+   per-project store                global registry           personal notes
+ ──────────────────────         ──────────────────────    ──────────────────
+  memories                       projects                  personal_notes
+  memories_fts (FTS5)            memory_index              personal_notes_fts
+  sessions                       memory_index_fts (FTS5)   schema_migrations
+  agent_runs                     schema_migrations
+  memory_links
+  schema_migrations
+         │                              │
+         │   docs/memory/ (git-tracked) │
+         └──────────────────────────────┘
+              team transport layer
+```
+
+**`<project>/.cx/memory.db`** — Per-project memory store. Created by `cx init`.
+- `memories` — observations, decisions, sessions, and agent interactions. Columns: `id`, `entity_type`, `subtype`, `title`, `content`, `author`, `source`, `change_id`, `file_refs`, `spec_refs`, `tags`, `visibility`, `shared_at`, `created_at`, `updated_at`, `archived_at`
+- `memories_fts` — FTS5 virtual table (content mirror of `memories`) for full-text search
+- `sessions` — build/continue/plan session records with `mode`, `change_name`, `goal`, `summary`
+- `agent_runs` — per-session agent invocations with `agent_type`, `result_status`, `duration_ms`
+- `memory_links` — typed links between memories (`related-to`, `caused-by`, `resolved-by`, `see-also`)
+- `schema_migrations` — applied migration versions
+- All three databases use WAL mode and foreign key enforcement. `.cx/memory.db` is gitignored — never committed.
+
+**`~/.cx/index.db`** — Global project registry. Replaces the old `projects.json`.
+- `projects` — registered project paths with `name`, `path`, `git_remote`, `last_synced`
+- `memory_index` — lightweight title/tag index of each project's memories, synced on push/pull
+- `memory_index_fts` — FTS5 virtual table for cross-project search
+- `schema_migrations`
+
+**`~/.cx/memory.db`** — Personal notes. Local-only, never synced with the team.
+- `personal_notes` — columns: `id`, `topic_key`, `title`, `content`, `tags`, `projects`, `created_at`, `updated_at`
+- `personal_notes_fts` — FTS5 virtual table
+- `schema_migrations`
+
+The `docs/memory/` directory is the team transport layer: `cx memory push` exports project memories as markdown files that get committed to git, and `cx memory pull` imports them into the local DB. SQLite is the query layer; markdown is the sync layer.
 
 ### Team sync
 
@@ -185,6 +265,43 @@ Conflict detection: if a memory ID exists locally with different content, `cx me
 | Decision | `project` | Yes |
 | Session | `personal` | No (unless overridden) |
 | Agent run | `personal` | No |
+
+## Dashboard
+
+Launch the interactive TUI with `cx dashboard` (aliases: `dash`, `ui`). The dashboard polls all three SQLite databases every 5 seconds and displays live project memory.
+
+### Navigation
+
+| Key | Action |
+|-----|--------|
+| `h` / `←` | Previous tab |
+| `l` / `→` | Next tab |
+| `tab` / `shift+tab` | Next / previous tab |
+| `1`–`8` | Jump directly to a tab |
+| `j` / `↓` | Navigate down |
+| `k` / `↑` | Navigate up |
+| `g` / `G` | Top / bottom of list |
+| `ctrl+d` / `ctrl+u` | Half-page scroll down / up |
+| `ctrl+f` / `ctrl+b` | Full-page scroll down / up |
+| `H` / `M` / `L` | Jump to visible top / middle / bottom |
+| `/` | Activate search (Memories and Cross-Project tabs) |
+| `esc` | Exit search or close overlay |
+| `r` | Force data refresh |
+| `?` | Toggle help overlay |
+| `q` | Quit |
+
+### Tabs
+
+| # | Tab | Description |
+|---|-----|-------------|
+| 1 | Home | Overview stats and recent activity |
+| 2 | Memories | Browse observations and decisions with FTS5 search, type filter, and detail overlay |
+| 3 | Sessions | Timeline of build/plan/continue sessions |
+| 4 | Runs | Agent execution history grouped by session (expand/collapse with `space`) |
+| 5 | Sync | Push/pull status and pending memory exports (`p` push, `P` push --all, `u` pull) |
+| 6 | Notes | Personal notes browser (reads `~/.cx/memory.db`) |
+| 7 | Graph | Memory link relationship graph |
+| 8 | Cross-Project | Federated FTS5 search across all registered projects via `~/.cx/index.db` |
 
 ## Project layout
 

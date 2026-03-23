@@ -44,4 +44,5 @@ func init() {
 	rootCmd.AddCommand(instructionsCmd)
 	rootCmd.AddCommand(agentRunCmd)
 	rootCmd.AddCommand(memoryCmd)
+	rootCmd.AddCommand(dashboardCmd)
 }
