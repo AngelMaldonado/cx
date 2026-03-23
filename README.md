@@ -4,6 +4,29 @@ AI-native project knowledge system that unifies spec-driven development, shared 
 
 See [docs/overview.md](docs/overview.md) for the problem statement.
 
+## Installation
+
+### Homebrew (recommended)
+
+```bash
+brew tap AngelMaldonado/cx https://github.com/AngelMaldonado/cx.git
+brew install cx
+```
+
+### From source
+
+```bash
+go install github.com/amald/cx@latest
+```
+
+### Build from source
+
+```bash
+git clone https://github.com/AngelMaldonado/cx.git
+cd cx
+make build
+```
+
 ## Requirements
 
 - **Go 1.25+** (see [go.mod](go.mod))

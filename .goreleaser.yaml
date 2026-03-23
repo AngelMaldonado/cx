@@ -41,10 +41,10 @@ changelog:
 brews:
   - name: cx
     repository:
-      owner: amald
+      owner: AngelMaldonado
       name: cx
     directory: Formula
-    homepage: "https://github.com/amald/cx"
+    homepage: "https://github.com/AngelMaldonado/cx"
     description: "CX — AI-native project knowledge system"
     license: "MIT"
     install: |
