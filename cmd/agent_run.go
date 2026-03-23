@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/amald/cx/internal/memory"
-	"github.com/amald/cx/internal/project"
-	"github.com/amald/cx/internal/ui"
+	"github.com/AngelMaldonado/cx/internal/memory"
+	"github.com/AngelMaldonado/cx/internal/project"
+	"github.com/AngelMaldonado/cx/internal/ui"
 	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )

@@ -16,7 +16,7 @@ brew install cx
 ### From source
 
 ```bash
-go install github.com/amald/cx@latest
+go install github.com/AngelMaldonado/cx@latest
 ```
 
 ### Build from source

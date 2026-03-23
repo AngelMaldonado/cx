@@ -1,4 +1,4 @@
-module github.com/amald/cx
+module github.com/AngelMaldonado/cx
 
 go 1.25.0
 

@@ -3,7 +3,7 @@ package doctor
 import (
 	"fmt"
 
-	"github.com/amald/cx/internal/ui"
+	"github.com/AngelMaldonado/cx/internal/ui"
 )
 
 func PrintReport(groups []CheckGroup) (errors, warnings int) {

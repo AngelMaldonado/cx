@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/amald/cx/internal/change"
-	"github.com/amald/cx/internal/project"
-	"github.com/amald/cx/internal/ui"
-	"github.com/amald/cx/internal/verify"
+	"github.com/AngelMaldonado/cx/internal/change"
+	"github.com/AngelMaldonado/cx/internal/project"
+	"github.com/AngelMaldonado/cx/internal/ui"
+	"github.com/AngelMaldonado/cx/internal/verify"
 	"github.com/spf13/cobra"
 )
 

@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"github.com/amald/cx/internal/project"
-	"github.com/amald/cx/internal/tui"
-	"github.com/amald/cx/internal/ui"
+	"github.com/AngelMaldonado/cx/internal/project"
+	"github.com/AngelMaldonado/cx/internal/tui"
+	"github.com/AngelMaldonado/cx/internal/ui"
 	"github.com/spf13/cobra"
 )
 

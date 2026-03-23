@@ -10,7 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/amald/cx/internal/tui/data"
+	"github.com/AngelMaldonado/cx/internal/tui/data"
 )
 
 // maxRecentRuns is the maximum number of agent runs shown in the home view table.

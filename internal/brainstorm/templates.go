@@ -3,7 +3,7 @@ package brainstorm
 import (
 	"strings"
 
-	"github.com/amald/cx/internal/templates"
+	"github.com/AngelMaldonado/cx/internal/templates"
 )
 
 func MasterfileTemplate(name string) string {

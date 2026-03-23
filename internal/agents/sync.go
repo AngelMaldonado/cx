@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/amald/cx/internal/skills"
+	"github.com/AngelMaldonado/cx/internal/skills"
 )
 
 // SyncStatus reports what would change for a single agent during sync.

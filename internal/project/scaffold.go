@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/amald/cx/internal/memory"
-	"github.com/amald/cx/internal/templates"
+	"github.com/AngelMaldonado/cx/internal/memory"
+	"github.com/AngelMaldonado/cx/internal/templates"
 )
 
 type ScaffoldResult struct {

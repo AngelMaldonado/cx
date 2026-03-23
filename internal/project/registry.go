@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/amald/cx/internal/memory"
+	"github.com/AngelMaldonado/cx/internal/memory"
 )
 
 type ProjectRegistry struct {

@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/amald/cx/internal/change"
+	"github.com/AngelMaldonado/cx/internal/change"
 )
 
 // DecomposeResult describes what cx decompose created.

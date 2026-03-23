@@ -3,8 +3,8 @@ package cmd
 import (
 	"os"
 
-	"github.com/amald/cx/internal/brainstorm"
-	"github.com/amald/cx/internal/project"
+	"github.com/AngelMaldonado/cx/internal/brainstorm"
+	"github.com/AngelMaldonado/cx/internal/project"
 	"github.com/spf13/cobra"
 )
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/amald/cx/internal/ui"
+	"github.com/AngelMaldonado/cx/internal/ui"
 	"github.com/spf13/cobra"
 )
 
