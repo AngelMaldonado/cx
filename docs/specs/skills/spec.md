@@ -40,7 +40,7 @@ These override the agent's general behavior when this skill is active.
 - **All four sections** are required. `cx doctor` warns on any skill file missing a section
 - **## Steps** must contain numbered steps with concrete commands — no vague instructions
 - **## Rules** must contain at least one rule
-- Skill files are pure markdown. No YAML frontmatter, no metadata
+- Embedded skill files include YAML frontmatter (`name`, `description` keys). On-disk skill files (`.claude/skills/`) mirror the embedded content exactly, including frontmatter.
 - Max recommended length: 200 lines (agents process shorter skills more reliably)
 
 ---
@@ -96,6 +96,7 @@ Skill files are embedded in the Go binary at build time using `go:embed`. This m
 | [cx-supervise](catalog/cx-supervise.md) | Team agent | Supervisor | Team coordination for complex tasks |
 | [cx-contract](catalog/cx-contract.md) | Team agent | Contractor | Implementation coordination and Worker management |
 | [cx-doctor](catalog/cx-doctor.md) | Master | Master | Project health checks |
+| [cx-fix](catalog/cx-fix.md) | Master | Master | Lightweight FIX mode for quick, localized code changes |
 | [cx-review](catalog/cx-review.md) | Standalone agent | Reviewer | Post-implementation review against specs |
 | [cx-conflict-resolve](catalog/cx-conflict-resolve.md) | Standalone agent | Conflict-resolver | Resolve semantic conflicts after git pull |
 

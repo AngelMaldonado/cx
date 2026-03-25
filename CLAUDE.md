@@ -83,12 +83,13 @@ Classify the developer's intent into a session mode and invoke the corresponding
 | **BUILD** | `cx-build` | Developer wants to create something new |
 | **CONTINUE** | `cx-continue` | Developer is resuming existing work |
 | **PLAN** | `cx-plan` | Developer wants to brainstorm or design |
+| **FIX** | `cx-fix` | Developer wants a quick, localized code change |
 
 Each skill contains the full step-by-step workflow for that mode. Invoke the skill and follow it.
 
-**Quick tasks** (no skill needed): code question → Scout; health check → `cx doctor`; simple answer → respond directly.
+**Quick tasks** (no skill needed): code question → Scout; health check → `cx doctor`; simple answer → respond directly. For small code changes, use **FIX** mode (`cx-fix`).
 
-**Never dispatch an executor without decomposing first.** Change docs are what executors consume.
+**Never dispatch an executor without decomposing first** (BUILD and CONTINUE modes). Change docs are what executors consume. FIX mode is exempt — it dispatches executors directly.
 
 ## CX Way of Work
 
@@ -96,7 +97,7 @@ Three pillars:
 
 **Changes** — the fundamental unit of work. Every piece of work is tracked as a change in `docs/changes/<name>/` with proposal, design, tasks, and optional delta specs.
 
-**docs/** — single source of truth. Specs, memory, changes, masterfiles. You scaffold placeholder files via `cx` commands; subagents fill them in.
+**docs/** — single source of truth. Specs, architecture, memory, changes, masterfiles. You scaffold placeholder files via `cx` commands; subagents fill them in.
 
 **Memory** — persistent project knowledge. Observations, decisions, session summaries. Subagents must save significant discoveries via `cx memory save` before returning.
 
@@ -188,6 +189,7 @@ If CX state is lost (e.g., after context compaction), recover from persistent st
 | cx-continue | [SKILL.md](skills/cx-continue/SKILL.md) |
 | cx-contract | [SKILL.md](skills/cx-contract/SKILL.md) |
 | cx-doctor | [SKILL.md](skills/cx-doctor/SKILL.md) |
+| cx-fix | [SKILL.md](skills/cx-fix/SKILL.md) |
 | cx-linear | [SKILL.md](skills/cx-linear/SKILL.md) |
 | cx-memory | [SKILL.md](skills/cx-memory/SKILL.md) |
 | cx-plan | [SKILL.md](skills/cx-plan/SKILL.md) |

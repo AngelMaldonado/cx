@@ -51,10 +51,10 @@ type GraphModel struct {
 
 // relationColors maps relation types to lipgloss colors.
 var relationColors = map[string]lipgloss.Color{
-	"related-to":  lipgloss.Color("33"),  // blue
-	"caused-by":   lipgloss.Color("196"), // red
-	"resolved-by": lipgloss.Color("82"),  // green
-	"see-also":    lipgloss.Color("241"), // gray
+	"related-to":  ColorSelected,   // was "33"
+	"caused-by":   ColorError,      // was "196"
+	"resolved-by": ColorSuccess,    // was "82"
+	"see-also":    ColorDeprecated, // was "241"
 }
 
 // relationStyle returns the appropriate lipgloss style for a relation type.

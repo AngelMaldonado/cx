@@ -2,31 +2,38 @@ package tui
 
 import (
 	"github.com/charmbracelet/lipgloss"
+	ui "github.com/AngelMaldonado/cx/internal/ui"
 )
 
-// Color palette — 256-color ANSI codes for broad terminal compatibility.
-// lipgloss degrades gracefully on 8-color terminals.
+// Color palette — sourced from ui.ActivePalette, which is set in internal/ui's
+// init() before any internal/tui code runs. Go's cross-package init ordering
+// guarantees this is safe as package-level var initializers.
 var (
 	// Semantic colors
-	ColorAccent     = lipgloss.Color("86")  // cyan-green
-	ColorSelected   = lipgloss.Color("33")  // blue
-	ColorSuccess    = lipgloss.Color("82")  // green
-	ColorWarning    = lipgloss.Color("214") // orange
-	ColorError      = lipgloss.Color("196") // red
-	ColorDeprecated = lipgloss.Color("241") // dimmed gray
+	ColorAccent     = ui.ActivePalette.Accent
+	ColorSelected   = ui.ActivePalette.Selected
+	ColorSuccess    = ui.ActivePalette.Success
+	ColorWarning    = ui.ActivePalette.Warning
+	ColorError      = ui.ActivePalette.Error
+	ColorDeprecated = ui.ActivePalette.Deprecated
 
 	// Entity type colors
-	ColorObservation = lipgloss.Color("75")  // blue
-	ColorDecision    = lipgloss.Color("141") // purple
-	ColorSession     = lipgloss.Color("114") // green
-	ColorAgentRun    = lipgloss.Color("180") // yellow
+	ColorObservation = ui.ActivePalette.ObservationColor
+	ColorDecision    = ui.ActivePalette.DecisionColor
+	ColorSession     = ui.ActivePalette.SessionColor
+	ColorAgentRun    = ui.ActivePalette.AgentRunColor
 
 	// Structural colors
-	ColorBorder   = lipgloss.Color("236") // dark gray border
-	ColorMuted    = lipgloss.Color("245") // secondary text
-	ColorSubtle   = lipgloss.Color("240") // very muted text
-	ColorPrimary  = lipgloss.Color("63")  // purple/indigo — tab highlights
-	ColorTabInact = lipgloss.Color("242") // inactive tab text
+	ColorBorder   = ui.ActivePalette.Border
+	ColorMuted    = ui.ActivePalette.Muted
+	ColorSubtle   = ui.ActivePalette.Subtle
+	ColorPrimary  = ui.ActivePalette.Primary
+	ColorTabInact = ui.ActivePalette.TabInact
+
+	// Structural layout colors (previously inline ANSI literals)
+	ColorStatusBg   = ui.ActivePalette.StatusBg
+	ColorValueText  = ui.ActivePalette.ValueText
+	ColorSelectedBg = ui.ActivePalette.SelectedBg
 )
 
 // Tab bar styles
@@ -60,7 +67,7 @@ var (
 // Status bar (bottom row)
 var (
 	StatusBarStyle = lipgloss.NewStyle().
-			Background(lipgloss.Color("235")).
+			Background(ColorStatusBg).
 			Foreground(ColorMuted).
 			Padding(0, 1)
 
@@ -139,7 +146,7 @@ var (
 
 	// ValueStyle renders field values.
 	ValueStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("252"))
+			Foreground(ColorValueText)
 
 	// MutedStyle renders secondary / de-emphasised text.
 	MutedStyle = lipgloss.NewStyle().
@@ -162,13 +169,13 @@ var (
 
 	// TableRowStyle styles a normal (unselected) list row.
 	TableRowStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("252"))
+			Foreground(ColorValueText)
 
 	// TableSelectedStyle styles the currently selected row.
 	TableSelectedStyle = lipgloss.NewStyle().
 				Foreground(ColorSelected).
 				Bold(true).
-				Background(lipgloss.Color("239"))
+				Background(ColorSelectedBg)
 
 	// DeprecatedRowStyle styles a deprecated memory row — strikethrough + dimmed.
 	// Both visual cues (color + strikethrough) are applied for accessibility.
@@ -203,7 +210,7 @@ var (
 
 	// HelpTextStyle renders text inside the help overlay.
 	HelpTextStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("252"))
+			Foreground(ColorValueText)
 
 	// HelpKeyStyle renders key names inside the help overlay.
 	HelpKeyStyle = lipgloss.NewStyle().

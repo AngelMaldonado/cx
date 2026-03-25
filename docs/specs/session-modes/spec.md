@@ -1,6 +1,6 @@
 # Spec: Session Entry Modes
 
-When a developer starts a CX session, they're in one of three modes. Each has fundamentally different context needs. The **Primer** handles mode classification, context loading, and distillation — the Master never interacts with `cx context` directly.
+When a developer starts a CX session, they're in one of four modes. Each has fundamentally different context needs. The **Primer** handles mode classification, context loading, and distillation — the Master never interacts with `cx context` directly.
 
 > Full priming architecture: [context-priming spec](../context-priming/spec.md)
 
@@ -8,7 +8,7 @@ See diagram: [session entry modes flowchart](diagrams/05-session-entry-modes.mer
 
 ---
 
-## The Three Modes
+## The Four Modes
 
 ```
 Developer starts session
@@ -31,6 +31,11 @@ Primer classifies developer's opening message
         │         ▼
         │    BUILD — Medium: spec index + relevant specs +
         │            active decisions + recent observations
+        │
+        ├── "just rename this variable"
+        │         ▼
+        │    FIX — Minimal: Scout maps area, Executor applies change,
+        │          Reviewer optional, no change docs
         │
         └── "We need to plan the v2 architecture"
                   ▼
@@ -128,6 +133,47 @@ The Primer reads the spec index, identifies which spec areas relate to the devel
 
 ---
 
+## Mode: FIX
+
+**When**: Developer wants a quick, localized code change that bypasses the full change lifecycle.
+
+**Signal phrases**: "fix", "patch", "tweak", "quick fix", "one-liner", "just change X to Y", "rename this", "update this value", or any request for a small localized change with no architectural implications.
+
+### 3-step flow
+
+```
+1. Scout     → always dispatched; receives the developer's fix description;
+               returns a focused map of the affected code area
+2. Executor  → receives fix description + Scout's map;
+               applies the change; no change docs required
+3. Reviewer  → optional; Master uses AskUserQuestion("Fix applied. Want a review?")
+```
+
+### Memory touchpoints
+
+FIX mode intentionally creates no memory artifacts.
+
+| Step | Action |
+|------|--------|
+| Each agent dispatch | Master logs agent run via `cx agent-run log` |
+| Session end | No `cx memory session` — git log is the only artifact |
+
+### What the Master skips in FIX mode
+
+- Primer dispatch (no project context load)
+- Requirements gathering rounds
+- Planner dispatch
+- `cx decompose`, `cx change new`
+- proposal.md, design.md, tasks.md
+- Archive flow and spec merging
+- `cx memory save`, `cx memory decide`, `cx memory session`
+
+### Scope guard
+
+If the fix description grows in scope (multiple unrelated files, architectural implications), the Master stops FIX mode and redirects the developer to BUILD mode.
+
+---
+
 ## Mode: PLAN
 
 **When**: Developer is doing high-level thinking — planning a big feature, rethinking architecture, starting a new project.
@@ -184,6 +230,10 @@ Developer's opening message
     ├── Mentions "plan", "brainstorm", "think about", "redesign", "architecture"?
     │   └── YES → PLAN
     │
+    ├── Small, localized fix? ("fix", "patch", "tweak", "quick fix", "one-liner",
+    │   "just change X to Y", "rename this", "update this value")
+    │   └── YES → FIX
+    │
     ├── Describes something new to build, add, create, or implement?
     │   └── YES → BUILD
     │
@@ -205,6 +255,7 @@ If CONTINUE is detected but the change name is ambiguous (e.g., "let's continue"
 | CONTINUE | ~600 tok | ~1-2K tok (canonical specs) | ~2-3K tok |
 | BUILD | ~800 tok | ~2-4K tok (1-2 spec areas) | ~3-5K tok |
 | PLAN | ~400 tok | 0 tok | ~400 tok |
+| FIX | 0 tok (Primer not dispatched) | 0 tok | 0 tok |
 
 ### What the Master receives
 
@@ -213,6 +264,7 @@ If CONTINUE is detected but the change name is ambiguous (e.g., "let's continue"
 | CONTINUE | 500-800 tok |
 | BUILD | 500-800 tok |
 | PLAN | 300-500 tok |
+| FIX | 0 tok (no Primer) |
 
 The Primer absorbs the full load and distills it. The Master starts with only what's relevant, leaving maximum room for the actual work.
 

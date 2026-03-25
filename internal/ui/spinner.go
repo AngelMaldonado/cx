@@ -10,15 +10,10 @@ import (
 
 var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
-// Pre-render styled frames at init time to avoid per-tick lipgloss overhead.
+// Pre-render styled frames; initialized by theme.go's init() to guarantee
+// StyleAccent is set before use (spinner.go sorts before theme.go
+// alphabetically, so spinner's own init() would run too early).
 var styledFrames []string
-
-func init() {
-	styledFrames = make([]string, len(spinnerFrames))
-	for i, f := range spinnerFrames {
-		styledFrames[i] = StyleAccent.Render(f)
-	}
-}
 
 func isTTY() bool {
 	return isatty.IsTerminal(os.Stderr.Fd()) || isatty.IsCygwinTerminal(os.Stderr.Fd())

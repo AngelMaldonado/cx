@@ -22,17 +22,18 @@ type crossProjectSearchResultMsg struct {
 	err     error
 }
 
-// projectColorPalette is a fixed set of 256-color ANSI codes for assigning
+// projectColorPalette is a fixed set of Catppuccin hex colors for assigning
 // distinct colours to different project names in the results list.
+// These mid-tone accent colors have sufficient contrast on both dark and light backgrounds.
 var projectColorPalette = []lipgloss.Color{
-	lipgloss.Color("75"),  // blue
-	lipgloss.Color("141"), // purple
-	lipgloss.Color("114"), // green
-	lipgloss.Color("180"), // yellow
-	lipgloss.Color("210"), // pink/salmon
-	lipgloss.Color("86"),  // cyan-green
-	lipgloss.Color("172"), // orange
-	lipgloss.Color("105"), // medium purple
+	"#209fb5", // Sapphire
+	"#8839ef", // Mauve
+	"#40a02b", // Green
+	"#fe640b", // Peach
+	"#dd7878", // Flamingo
+	"#179299", // Teal
+	"#df8e1d", // Yellow
+	"#7287fd", // Lavender
 }
 
 // CrossProjectModel is the Bubble Tea sub-model for the cross-project search view.

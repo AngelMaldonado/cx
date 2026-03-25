@@ -103,3 +103,4 @@ Do NOT dispatch a single executor and stop. You must drive every task to complet
 - The developer must approve the plan before decompose
 - At session end, save a session summary: `cx memory session --goal "..." --accomplished "..." --next "..." --change <name> --discoveries "..." --files "..."`
 - The --next field is critical — without it, the next CONTINUE session cannot recover state
+

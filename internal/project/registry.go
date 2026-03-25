@@ -40,8 +40,8 @@ func preferencesPath() (string, error) {
 	return filepath.Join(dir, "preferences.json"), nil
 }
 
-// projectID returns a short SHA-256-based ID for a path.
-func projectID(path string) string {
+// ProjectID returns a short SHA-256-based ID for a path.
+func ProjectID(path string) string {
 	sum := sha256.Sum256([]byte(path))
 	return fmt.Sprintf("%x", sum)[:12]
 }
@@ -76,7 +76,7 @@ func migrateJSONIfNeeded() error {
 	defer db.Close()
 
 	for _, p := range reg.Projects {
-		id := projectID(p)
+		id := ProjectID(p)
 		name := filepath.Base(p)
 		_, err := db.Exec(
 			`INSERT OR IGNORE INTO projects (id, name, path) VALUES (?, ?, ?)`,
@@ -141,7 +141,7 @@ func RegisterProject(absPath string) (bool, error) {
 	}
 	defer db.Close()
 
-	id := projectID(absPath)
+	id := ProjectID(absPath)
 	name := filepath.Base(absPath)
 
 	res, err := db.Exec(

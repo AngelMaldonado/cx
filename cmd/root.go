@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/AngelMaldonado/cx/internal/project"
 	"github.com/AngelMaldonado/cx/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -20,6 +21,17 @@ var rootCmd = &cobra.Command{
 	SilenceUsage:  true,
 	CompletionOptions: cobra.CompletionOptions{
 		HiddenDefaultCmd: true,
+	},
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if !project.IsDisabled() {
+			return
+		}
+		allowed := map[string]bool{"enable": true, "disable": true, "version": true}
+		if allowed[cmd.Use] {
+			return
+		}
+		fmt.Fprintln(os.Stderr, "cx is disabled. Run 'cx enable' to restore.")
+		os.Exit(1)
 	},
 }
 
@@ -45,4 +57,6 @@ func init() {
 	rootCmd.AddCommand(agentRunCmd)
 	rootCmd.AddCommand(memoryCmd)
 	rootCmd.AddCommand(dashboardCmd)
+	rootCmd.AddCommand(disableCmd)
+	rootCmd.AddCommand(enableCmd)
 }
