@@ -5,21 +5,21 @@
 class Cx < Formula
   desc "CX — AI-native project knowledge system"
   homepage "https://github.com/AngelMaldonado/cx"
-  version "0.1.0"
+  version "0.2.0"
   license "MIT"
 
   on_macos do
     if Hardware::CPU.intel?
-      url "https://github.com/AngelMaldonado/cx/releases/download/v0.1.0/cx_0.1.0_darwin_amd64.tar.gz"
-      sha256 "dad2ae70a5e548bb3088d593ebef941ea601f9ae3b01b8dee4559602897a4542"
+      url "https://github.com/AngelMaldonado/cx/releases/download/v0.2.0/cx_0.2.0_darwin_amd64.tar.gz"
+      sha256 "b6a7f1f7ce52217af8d4f37135e2abda7a985a8576b0bda1a5f3588ab9e9035c"
 
       define_method(:install) do
         bin.install "cx"
       end
     end
     if Hardware::CPU.arm?
-      url "https://github.com/AngelMaldonado/cx/releases/download/v0.1.0/cx_0.1.0_darwin_arm64.tar.gz"
-      sha256 "fec41b9609899efc96339bd46dab5572a253c63ea9c7a890dc7951cd715a833b"
+      url "https://github.com/AngelMaldonado/cx/releases/download/v0.2.0/cx_0.2.0_darwin_arm64.tar.gz"
+      sha256 "b00299b43cdbcda0851ee3be2d55869505b13a555b2ad328210f86c1950301fb"
 
       define_method(:install) do
         bin.install "cx"
@@ -29,15 +29,15 @@ class Cx < Formula
 
   on_linux do
     if Hardware::CPU.intel? && Hardware::CPU.is_64_bit?
-      url "https://github.com/AngelMaldonado/cx/releases/download/v0.1.0/cx_0.1.0_linux_amd64.tar.gz"
-      sha256 "612ac0f7c7e7e63dee9fece4541e50bd7a479edf994b4606e0ccc66040e8b17e"
+      url "https://github.com/AngelMaldonado/cx/releases/download/v0.2.0/cx_0.2.0_linux_amd64.tar.gz"
+      sha256 "0b71f2f0e9835100c011e9c0c69e99face3f5020fef38af1ed5340d530db255a"
       define_method(:install) do
         bin.install "cx"
       end
     end
     if Hardware::CPU.arm? && Hardware::CPU.is_64_bit?
-      url "https://github.com/AngelMaldonado/cx/releases/download/v0.1.0/cx_0.1.0_linux_arm64.tar.gz"
-      sha256 "8d2b7f69f2bdab0970fce6ca4dea226a746894c91fa959a2bbbcfbd4f6a1bdf5"
+      url "https://github.com/AngelMaldonado/cx/releases/download/v0.2.0/cx_0.2.0_linux_arm64.tar.gz"
+      sha256 "4cd09c4765b08378176ece89097c54208a2334f30c64eeeb2a7e1edcc915a876"
       define_method(:install) do
         bin.install "cx"
       end
