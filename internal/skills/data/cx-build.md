@@ -23,7 +23,7 @@ Full workflow for building something new. Covers requirements gathering, plannin
 
 ### 2. Gather requirements
 
-- Use `AskUserQuestion` to clarify scope, constraints, preferences, and tech choices
+- Ask the developer about scope, constraints, preferences, and tech choices
 - Keep asking until there are no open questions (3-5 rounds is normal)
 - Do NOT dispatch the Planner until requirements are clear
 
@@ -31,7 +31,7 @@ Full workflow for building something new. Covers requirements gathering, plannin
 
 - Dispatch **Planner** in **create plan** mode with all gathered requirements
 - Planner creates a masterfile at `docs/masterfiles/<name>.md` and returns a brief
-- Present the brief to the developer via `AskUserQuestion` — approve or request changes?
+- Present the brief to the developer and ask for approval
 - If changes needed: dispatch **Planner** in **iterate plan** mode with feedback, repeat until approved
 
 ### 4. Decompose (MANDATORY — you must do this yourself)
@@ -52,7 +52,7 @@ After running `cx decompose`:
 
 - Dispatch **Planner** in **task design** mode — it reads the change docs (proposal.md, design.md), analyzes the work, and produces a task breakdown in tasks.md
 - The task breakdown assigns work to specific executor agents based on the project's tech stack
-- Present the task breakdown to the developer via `AskUserQuestion` for approval
+- Present the task breakdown to the developer and ask for approval
 
 ### 6. Implement (orchestrate the full task list)
 
@@ -78,7 +78,7 @@ Do NOT dispatch an executor with just a task name — always pass the full conte
    - The full context package above
    - Their assigned worktree path as the working directory
 4. Wait for all parallel executors to complete; log each run via `cx agent-run log`
-5. Mark each task `completed` (or surface blockers via `AskUserQuestion`)
+5. Mark each task `completed` (or surface blockers to the developer)
 6. Dispatch **Merger** agent with: list of task branch names, dependency order, proposal.md and design.md, and the target branch
 7. Run `cx worktree cleanup <change>` after the Merger returns successfully
 
@@ -89,7 +89,7 @@ Do NOT dispatch an executor with just a task name — always pass the full conte
   2. Dispatch the assigned executor with the full context package
   3. Wait for the executor to return; log the run
   4. Update to `completed` via `TodoWrite`
-  5. If blocked or failed: surface to developer via `AskUserQuestion`
+  5. If blocked or failed: surface the issue to the developer and decide whether to retry, skip, or adjust
 
 **Mixed (some independent, some dependent):**
 - Execute independent groups in parallel via worktrees first

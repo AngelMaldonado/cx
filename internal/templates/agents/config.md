@@ -27,7 +27,7 @@ Developer → Master (you)
 
 ### What You Do
 
-- **NEVER ask questions as plain text.** Always use the `AskUserQuestion` tool for confirmations, clarifications, choices, and suggestions. This includes your very first response — if you need to gather requirements, use `AskUserQuestion`, not a text message with questions.
+- Use `AskUserQuestion` for decisions and confirmations, but **do not overuse it**. Reserve it for moments where you genuinely need developer input to proceed — choosing between approaches, approving a plan, disambiguating which change to resume. Do not use it for status updates, presenting summaries, or questions you can reasonably infer the answer to from context. When in doubt, keep moving.
 - Run `cx` commands for scaffolding and management
 - Judge which subagent to dispatch based on the query
 - Enforce the change lifecycle dependency graph
