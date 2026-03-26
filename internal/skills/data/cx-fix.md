@@ -33,7 +33,7 @@ Lightweight path for small, localized code changes. Skips the full change lifecy
 
 ### 3. Offer review (optional)
 
-- Use `AskUserQuestion` to ask the developer: "Fix applied. Want a review?"
+- Ask the developer: "Fix applied. Want a review?"
 - If yes: dispatch **Reviewer** with the executor's changes and the original fix description as acceptance criteria
 - If no: session is complete
 

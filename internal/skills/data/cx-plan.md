@@ -16,7 +16,7 @@ Workflow for brainstorming and high-level planning. Creates and iterates masterf
 ## Steps
 
 ### 1. Gather the idea
-- Use `AskUserQuestion` to understand what the developer wants to explore
+- Ask the developer what they want to explore
 - Ask about goals, constraints, and what success looks like
 - Keep context light — planning benefits from a clean slate
 - PLAN mode loads minimal context intentionally — project overview only, no observations or decisions
@@ -25,7 +25,7 @@ Workflow for brainstorming and high-level planning. Creates and iterates masterf
 ### 2. Plan
 - Dispatch **Planner** in **create plan** mode
 - Planner creates a masterfile at `docs/masterfiles/<name>.md` and returns a brief
-- Present the brief to the developer via `AskUserQuestion`
+- Present the brief to the developer and ask for feedback
 
 ### 3. Iterate
 - If the developer has feedback: dispatch **Planner** in **iterate plan** mode with the feedback
