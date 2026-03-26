@@ -22,6 +22,7 @@ Resolve conflicts between memory files, specs, and implementation. Detects contr
 ## Rules
 - Never silently resolve conflicts — always involve the developer
 - Preserve the deprecated version in archive
-- Create a decision memory documenting the resolution
+- Create a decision memory documenting the resolution: `cx memory decide --title "Conflict resolution: <topic>" --context "..." --outcome "..." --alternatives "..." --rationale "..." --change <name>`
 - Memory sync conflicts (same entity ID, different content in local DB vs docs/memory/) are NOT handled by this skill — use `cx memory pull` and `cx doctor` instead
 - This skill handles semantic conflicts: contradictory specs, overlapping changes, conflicting design decisions
+- At session end: `cx memory session --goal "..." --accomplished "..." --next "..."`

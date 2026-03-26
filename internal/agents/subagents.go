@@ -48,6 +48,16 @@ func CXSubagents() []Subagent {
 			Skills:      []string{"cx-brainstorm", "cx-change"},
 			Prompt:      templates.MustContent("subagents/cx-planner.md"),
 		},
+		{
+			Slug:        "cx-executor",
+			Description: "Implement tasks from change docs. Delegate when you need to write code, run tests, or apply a specific task from tasks.md.",
+			Prompt:      templates.MustContent("subagents/cx-executor.md"),
+		},
+		{
+			Slug:        "cx-merger",
+			Description: "Integrate multiple task branches into a single change branch after parallel executor work. Delegate after parallel executors complete to merge their worktrees and resolve conflicts.",
+			Prompt:      templates.MustContent("subagents/cx-merger.md"),
+		},
 	}
 }
 

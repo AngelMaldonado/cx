@@ -21,9 +21,21 @@ Coordinate multi-agent workflows. Manages task distribution, progress tracking, 
 3. Monitor progress and handle blockers
 4. Aggregate results and report to developer
 
+## Worktree-Aware Dispatch
+
+When coordinating implementation work across multiple independent subtasks:
+
+1. **Create worktrees before dispatching:** Run `cx worktree create <change>-task-N` for each independent subtask. Each executor receives its worktree path as working directory.
+2. **Dispatch executors in parallel:** Independent subtasks run concurrently, each isolated in their own worktree.
+3. **Dispatch Merger after executors complete:** Pass the Merger agent the list of task branch names, dependency order, the change's proposal.md and design.md, and the target branch.
+4. **Clean up after merge:** Run `cx worktree cleanup <change>` once the Merger returns successfully.
+
+Use worktrees for 2 or more independent subtasks. For a single subtask or explicitly dependent tasks, execute sequentially on the main working tree.
+
 ## Rules
 - Each subtask must have clear acceptance criteria
 - Agents should work on independent, non-overlapping areas
 - Report progress at meaningful milestones
 - Escalate blockers to the developer promptly
 - Always pass session_id to sub-agent dispatches for agent-run tracking continuity
+- At session end: `cx memory session --goal "..." --accomplished "..." --next "..." --change <name> --discoveries "..."`

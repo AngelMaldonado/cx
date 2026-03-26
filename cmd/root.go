@@ -59,4 +59,5 @@ func init() {
 	rootCmd.AddCommand(dashboardCmd)
 	rootCmd.AddCommand(disableCmd)
 	rootCmd.AddCommand(enableCmd)
+	rootCmd.AddCommand(worktreeCmd)
 }

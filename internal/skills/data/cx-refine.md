@@ -24,3 +24,4 @@ Iteratively refine documents, specs, and code through structured review cycles. 
 - Respect the developer's voice and style
 - Focus on substance over formatting
 - One round of refinement at a time
+- At session end: `cx memory session --goal "..." --accomplished "..." --next "..."`

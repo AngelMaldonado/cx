@@ -503,8 +503,8 @@ func (m *RunsModel) sessionLabel(sessionID string) string {
 			}
 		}
 		date := ""
-		if len(s.StartedAt) >= 10 {
-			date = " (" + s.StartedAt[:10] + ")"
+		if s.StartedAt != "" {
+			date = " (" + formatTimestamp(s.StartedAt) + ")"
 		}
 		return name + date
 	}

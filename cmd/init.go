@@ -100,6 +100,18 @@ func runInit(cmd *cobra.Command, args []string) error {
 	var agentResults []agentResult
 
 	_ = ui.RunWithSpinner("installing agent configs + skills", 800*time.Millisecond, func() error {
+		// Snapshot any pre-existing agent directories before cx writes anything.
+		var selectedAgents []agents.Agent
+		for _, slug := range selectedSlugs {
+			if agent, ok := agents.BySlug(slug); ok {
+				selectedAgents = append(selectedAgents, agent)
+			}
+		}
+		if err := project.BackupPreInitState(rootDir, selectedAgents); err != nil {
+			// Non-fatal: log but continue — cx init should still succeed.
+			_ = err
+		}
+
 		for _, slug := range selectedSlugs {
 			agent, ok := agents.BySlug(slug)
 			if !ok {

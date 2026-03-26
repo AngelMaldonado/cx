@@ -23,3 +23,5 @@ Manage API and interface contracts. Tracks contract definitions, validates chang
 - Breaking changes require explicit developer approval
 - All contracts must be documented in specs
 - Version contracts when making breaking changes
+- After contract modifications: `cx memory save --type observation --title "Contract change: <name>" --content "..." --change <name>`
+- At session end: `cx memory session --goal "..." --accomplished "..." --next "..." --change <name>`

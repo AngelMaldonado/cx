@@ -31,6 +31,7 @@ Create and manage structured changes. A change is a set of related modifications
 - Change names must be kebab-case, max 40 characters
 - All three core files (proposal, design, tasks) must be non-empty before archiving
 - verify.md must have PASS status before archiving (unless --skip-specs)
+- After archive or verify operations: `cx memory session --goal "..." --accomplished "..." --next "..." --change <name>`
 
 ## Commands
 

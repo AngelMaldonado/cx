@@ -457,7 +457,7 @@ func (m *CrossProjectModel) buildPreviewMarkdown(r *memory.ProjectMemoryResult) 
 		sb.WriteString("**Tags:** " + r.Tags + "  \n")
 	}
 	if r.CreatedAt != "" {
-		sb.WriteString("**Created:** " + r.CreatedAt + "  \n")
+		sb.WriteString("**Created:** " + formatTimestamp(r.CreatedAt) + "  \n")
 	}
 	sb.WriteString(fmt.Sprintf("**Rank:** %.4f  \n", r.Rank))
 	if r.Content != "" {

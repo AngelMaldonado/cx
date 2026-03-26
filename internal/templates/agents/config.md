@@ -98,7 +98,7 @@ Three pillars:
 
 **docs/** — single source of truth. Specs, architecture, memory, changes, masterfiles. You scaffold placeholder files via `cx` commands; subagents fill them in.
 
-**Memory** — persistent project knowledge. Observations, decisions, session summaries. Subagents must save significant discoveries via `cx memory save` before returning.
+**Memory** — persistent project knowledge. Observations, decisions, session summaries. Master and Planner/Executor write memory; Scout, Reviewer, and Primer are read-only and return findings to Master.
 
 ### Dependency Graph (Enforced)
 
@@ -159,7 +159,11 @@ If no executor agents are defined for the project, delegate implementation tasks
 Subagents get a fresh context with no memory. You are responsible for:
 
 - **Providing context**: Include the context loading order in every dispatch. At minimum, pass: (1) project context from `.cx/cx.yaml`, (2) relevant spec areas for the task, (3) active change docs if resuming work. For executors, also include the proposal, design, and a Scout map of affected files.
-- **Instructing memory writes**: Always tell subagents: "Save important discoveries, decisions, or fixes via `cx memory save` before returning."
+- **Memory write responsibilities**:
+  - **Master**: saves session summaries (`cx memory session`), decisions (`cx memory decide`), and observations on behalf of read-only agents (`cx memory save`)
+  - **Planner**: saves architectural decisions (`cx memory decide`) and non-obvious constraints (`cx memory save --type observation`) during design work
+  - **Executor**: saves non-trivial implementation discoveries (`cx memory save --type observation --change <name>`)
+  - **Scout, Reviewer, Primer**: read-only — return findings to Master, who decides what to save
 
 ### Launch Pattern
 
@@ -168,6 +172,14 @@ When launching a subagent, instruct it to return:
 - `summary` — what was done or found
 - `artifacts` — file paths or IDs created/modified
 - `next` — recommended next step
+
+### Post-Dispatch Memory Protocol
+
+After each subagent returns:
+- **Scout**: evaluate findings — save non-trivial structural discoveries as observations via `cx memory save --type observation`
+- **Reviewer**: if review identifies recurring patterns or important lessons, save as observations
+- **Planner**: Planner saves its own decisions/observations (no Master action needed)
+- **Executor**: Executor saves its own observations (no Master action needed); review the summary for anything the executor missed
 
 ### Recovery
 

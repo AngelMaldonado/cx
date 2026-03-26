@@ -6,6 +6,7 @@ package tui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
@@ -88,6 +89,9 @@ func truncateANSI(s string, maxWidth int) string {
 
 // formatTimestamp shortens an RFC3339 / datetime string to "YYYY-MM-DD HH:MM".
 func formatTimestamp(ts string) string {
+	if t, err := time.Parse(time.RFC3339, ts); err == nil {
+		return t.Local().Format("2006-01-02 15:04")
+	}
 	if len(ts) >= 16 {
 		// Replace the T separator with a space for readability.
 		s := ts[:16]

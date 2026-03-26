@@ -22,3 +22,5 @@ Create and decompose masterfiles for brainstorming. A masterfile is a freeform d
 - Masterfile names must be kebab-case, max 40 characters
 - Never decompose without developer approval
 - After decompose, the masterfile is archived
+- At session end: `cx memory session --goal "..." --accomplished "..." --next "..."`
+- If a masterfile was created or significantly iterated, save key decisions: `cx memory decide --title "..." --context "..." --outcome "..." --rationale "..."`

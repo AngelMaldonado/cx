@@ -670,7 +670,7 @@ func (m *MemoriesModel) buildPreviewMarkdown(mem *memory.Memory) string {
 		sb.WriteString("**Tags:** " + mem.Tags + "  \n")
 	}
 	if mem.CreatedAt != "" {
-		sb.WriteString("**Created:** " + mem.CreatedAt + "  \n")
+		sb.WriteString("**Created:** " + formatTimestamp(mem.CreatedAt) + "  \n")
 	}
 	if mem.Deprecated == 1 {
 		sb.WriteString("\n> **[DEPRECATED]**\n")

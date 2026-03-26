@@ -62,24 +62,40 @@ You are responsible for working through the entire task list, not just spawning 
 - Read tasks.md and create a `TodoWrite` entry for every task, all set to `pending`
 - This gives the developer a visible checklist of all work before any execution starts
 
-**Then, work through each task:**
-- Before dispatching each executor, assemble its context package:
-  1. Project context from `.cx/cx.yaml`
-  2. The proposal.md and design.md from the change
-  3. The specific task description from tasks.md
-  4. Relevant spec areas (from delta specs in the change)
-  5. A Scout map of the files the task will modify (dispatch Scout first if needed)
-- Pass all of this in the executor's prompt. Do NOT dispatch an executor with just a task name.
-- After each executor returns, log the run: `cx agent-run log --type <agent_type> --session <session_id> --status <status> --summary "..."`
-- Pass the session_id to each executor's prompt so they can log their own sub-dispatches
+**Context package for each executor (always include all of these):**
+1. Project context from `.cx/cx.yaml`
+2. The proposal.md and design.md from the change
+3. The specific task description from tasks.md
+4. Relevant spec areas (from delta specs in the change)
+5. A Scout map of the files the task will modify (dispatch Scout first if needed)
+
+Do NOT dispatch an executor with just a task name — always pass the full context package.
+
+**For independent tasks (2 or more with no cross-dependencies) — default path:**
+1. For each independent task: run `cx worktree create <change>-task-N` to create an isolated worktree
+2. Mark each task `in_progress` via `TodoWrite`
+3. Dispatch all independent executors in parallel, each with:
+   - The full context package above
+   - Their assigned worktree path as the working directory
+4. Wait for all parallel executors to complete; log each run via `cx agent-run log`
+5. Mark each task `completed` (or surface blockers via `AskUserQuestion`)
+6. Dispatch **Merger** agent with: list of task branch names, dependency order, proposal.md and design.md, and the target branch
+7. Run `cx worktree cleanup <change>` after the Merger returns successfully
+
+**For dependent tasks (explicit ordering required):**
+- Execute sequentially on the main working tree (no worktrees needed)
 - For each task in dependency order:
-  1. Update the task to `in_progress` via `TodoWrite`
-  2. Dispatch the assigned **executor agent** with the task description, relevant change docs, and any context from previously completed tasks
-  3. Wait for the executor to return
-  4. Update the task to `completed` via `TodoWrite`
-  5. If blocked or failed: present the issue to the developer via `AskUserQuestion` and decide whether to retry, skip, or adjust
-- For independent tasks with no cross-dependencies: dispatch multiple executors in parallel
-- After all tasks complete, update tasks.md with completion status
+  1. Update to `in_progress` via `TodoWrite`
+  2. Dispatch the assigned executor with the full context package
+  3. Wait for the executor to return; log the run
+  4. Update to `completed` via `TodoWrite`
+  5. If blocked or failed: surface to developer via `AskUserQuestion`
+
+**Mixed (some independent, some dependent):**
+- Execute independent groups in parallel via worktrees first
+- After Merger completes, execute dependent tasks sequentially on the merged result
+
+After all tasks complete, update tasks.md with completion status.
 
 Do NOT dispatch a single executor and stop. You must drive every task to completion.
 
@@ -98,6 +114,7 @@ Do NOT dispatch a single executor and stop. You must drive every task to complet
 ## Rules
 
 - After a successful review, always ask about archiving — the BUILD workflow is not complete until the developer answers
+- Worktree-based parallel execution is the default for independent tasks. Only fall back to sequential execution when tasks have explicit dependencies or when there are fewer than 2 independent tasks.
 - Never dispatch an executor without completing decompose first
 - All three change files (proposal, design, tasks) must be non-empty before implementation starts
 - The developer must approve the plan before decompose
