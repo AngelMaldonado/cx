@@ -421,7 +421,7 @@ func (m *NotesModel) renderPreviewFullWidth() string {
 		}
 	}
 
-	return PreviewStyle.Width(m.width - 2).Height(ph + 1).Render(sb.String())
+	return PreviewStyle.Width(m.width - 4).Height(ph + 1).Render(sb.String())
 }
 
 // renderList renders the left pane: bordered box with note rows.
@@ -462,7 +462,7 @@ func (m *NotesModel) renderList(width int) string {
 		}
 	}
 
-	return PaneStyle.Width(width).Height(m.listHeight() + 1).Render(sb.String())
+	return PaneStyle.Width(innerW).Height(m.listHeight() + 1).Render(sb.String())
 }
 
 // renderNoteRow renders a single row in the notes list showing topic key and title.
@@ -588,7 +588,7 @@ func (m *NotesModel) renderHintBar() string {
 	var parts []string
 	for _, h := range hints {
 		parts = append(parts,
-			StatusKeyStyle.Render(h.key)+" "+StatusValueStyle.Render(h.desc),
+			StatusKey(h.key)+" "+h.desc,
 		)
 	}
 	bar := strings.Join(parts, "  ")

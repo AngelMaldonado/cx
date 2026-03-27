@@ -255,19 +255,28 @@ func (m *SessionsModel) renderList() string {
 
 	// Column widths.
 	// MODE(10)  CHANGE(22)  GOAL(rest)  STARTED(17)
-	const modeW, changeW, startedW = 10, 22, 17
-	fixedW := modeW + changeW + startedW + 3 // 3 separators
+	modeW, changeW, startedW := 10, 22, 17
+	if innerW < 56 {
+		startedW = 0 // hide the started column entirely on narrow terminals
+		changeW = min(changeW, max(innerW/3, 8))
+	}
+	separators := 3
+	if startedW == 0 {
+		separators = 2
+	}
+	fixedW := modeW + changeW + startedW + separators
 	goalW := innerW - fixedW
 	if goalW < 10 {
 		goalW = 10
 	}
 
-	header := TableHeaderStyle.Render(
-		padRight("MODE", modeW) +
-			padRight("CHANGE", changeW) +
-			padRight("GOAL", goalW) +
-			"STARTED",
-	)
+	headerStr := padRight("MODE", modeW) +
+		padRight("CHANGE", changeW) +
+		padRight("GOAL", goalW)
+	if startedW > 0 {
+		headerStr += "STARTED"
+	}
+	header := TableHeaderStyle.Render(headerStr)
 
 	lh := m.listHeight()
 	end := m.offset + lh
@@ -282,22 +291,25 @@ func (m *SessionsModel) renderList() string {
 		modeCol := padRight(renderModeTag(s.Mode), modeW)
 		changeCol := padRight(truncate(s.ChangeName, changeW-1), changeW)
 		goalCol := padRight(truncate(s.Goal, goalW-1), goalW)
-		startedCol := SubtleStyle.Render(formatTimestamp(s.StartedAt))
 
-		line := modeCol + changeCol + goalCol + startedCol
-
+		var line string
 		if absIdx == m.cursor {
 			// Selected row: apply TableSelectedStyle to the raw text for consistent width.
 			// Re-compose without mode badge color to avoid ANSI conflicts.
 			cursorMark := SubtitleStyle.Render("►") + " "
-			line = cursorMark + TableSelectedStyle.Render(
-				padRight(strings.ToUpper(s.Mode), modeW)+
-					padRight(truncate(s.ChangeName, changeW-1), changeW)+
-					padRight(truncate(s.Goal, goalW-1), goalW)+
-					formatTimestamp(s.StartedAt),
-			)
+			rawRow := padRight(strings.ToUpper(s.Mode), modeW) +
+				padRight(truncate(s.ChangeName, changeW-1), changeW) +
+				padRight(truncate(s.Goal, goalW-1), goalW)
+			if startedW > 0 {
+				rawRow += formatTimestamp(s.StartedAt)
+			}
+			line = cursorMark + TableSelectedStyle.Render(rawRow)
 		} else {
-			line = "  " + TableRowStyle.Render(line)
+			row := modeCol + changeCol + goalCol
+			if startedW > 0 {
+				row += SubtleStyle.Render(formatTimestamp(s.StartedAt))
+			}
+			line = "  " + TableRowStyle.Render(row)
 		}
 		rowStrings = append(rowStrings, line)
 	}

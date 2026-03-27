@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"strings"
+
 	"github.com/charmbracelet/lipgloss"
 	ui "github.com/AngelMaldonado/cx/internal/ui"
 )
@@ -64,31 +66,43 @@ var (
 			Padding(0, 1)
 )
 
-// Status bar (bottom row)
+// Status bar (bottom row).
+// StatusBarStyle is the only lipgloss style — it wraps the full bar with
+// a continuous background. Inner content uses StatusKey/StatusValue helper
+// functions that emit raw ANSI foreground codes without resetting the
+// background set by the outer wrapper.
 var (
 	StatusBarStyle = lipgloss.NewStyle().
 			Background(ColorStatusBg).
-			Foreground(ColorMuted).
-			Padding(0, 1)
-
-	// StatusKeyStyle renders keyboard shortcut keys in the status bar.
-	StatusKeyStyle = lipgloss.NewStyle().
-			Foreground(ColorAccent).
-			Bold(true)
-
-	// StatusValueStyle renders the descriptive text next to a key hint.
-	StatusValueStyle = lipgloss.NewStyle().
-				Foreground(ColorMuted)
-
-	// StatusErrorStyle renders error messages in the status bar.
-	StatusErrorStyle = lipgloss.NewStyle().
-				Foreground(ColorError).
-				Bold(true)
-
-	// StatusStaleStyle renders the stale-data indicator.
-	StatusStaleStyle = lipgloss.NewStyle().
-				Foreground(ColorWarning)
+			Foreground(ColorMuted)
 )
+
+// StatusKey renders a keyboard shortcut key with accent color + bold,
+// using raw ANSI so the outer StatusBarStyle background is preserved.
+func StatusKey(s string) string {
+	return "\033[1m" + colorToANSI(ColorAccent) + s + "\033[22m" + colorToANSI(ColorMuted)
+}
+
+// StatusError renders error text in the status bar.
+func StatusError(s string) string {
+	return "\033[1m" + colorToANSI(ColorError) + s + "\033[22m" + colorToANSI(ColorMuted)
+}
+
+// StatusStale renders the stale-data indicator.
+func StatusStale(s string) string {
+	return colorToANSI(ColorWarning) + s + colorToANSI(ColorMuted)
+}
+
+// colorToANSI converts a lipgloss.Color to a raw ANSI foreground escape.
+func colorToANSI(c lipgloss.Color) string {
+	r := lipgloss.NewStyle().Foreground(c).Render("")
+	// Extract just the SGR prefix (everything before the reset).
+	// Lipgloss renders "" as: <SGR seq>\033[0m — we want the SGR seq only.
+	if idx := strings.Index(r, "\033[0m"); idx >= 0 {
+		return r[:idx]
+	}
+	return r
+}
 
 // Entity type badge styles — used to label memory types in the list and preview.
 var (

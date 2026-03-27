@@ -68,7 +68,7 @@ var MochaPalette = Palette{
 	Primary:    "63",
 	TabInact:   "242",
 	// Structural
-	StatusBg:   "235",
+	StatusBg:   "#45475a", // Surface0 — purple-tinted to match Mocha theme
 	ValueText:  "252",
 	SelectedBg: "239",
 	// Entity types

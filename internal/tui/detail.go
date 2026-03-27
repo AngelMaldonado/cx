@@ -256,10 +256,20 @@ func (m *DetailModel) View() string {
 
 	// ---- Title bar row ----
 	badge := EntityTypeBadge(m.entityType).Render("[" + m.entityType + "]")
-	titleText := TitleStyle.Render(m.title)
+	badgeW := lipgloss.Width(badge)
+	// Truncate title to fit available width: subtract badge, left indent (2),
+	// gap (1), and a small margin (8) to avoid overflow.
+	maxTitleW := m.width - badgeW - 8
+	if maxTitleW < 5 {
+		maxTitleW = 5
+	}
+	displayTitle := m.title
+	if len([]rune(displayTitle)) > maxTitleW {
+		displayTitle = truncate(displayTitle, maxTitleW)
+	}
+	titleText := TitleStyle.Render(displayTitle)
 
 	titleW := lipgloss.Width(titleText)
-	badgeW := lipgloss.Width(badge)
 	gap := m.width - titleW - badgeW - 4 // 4 for left padding
 	if gap < 1 {
 		gap = 1
@@ -296,11 +306,11 @@ func (m *DetailModel) View() string {
 // buildDetailHints returns the key-hint string for the detail overlay status bar.
 func buildDetailHints(isMemory bool, scrollY, maxScroll int) string {
 	hints := []string{
-		StatusKeyStyle.Render("esc") + StatusValueStyle.Render(" back"),
-		StatusKeyStyle.Render("j/k") + StatusValueStyle.Render(" scroll"),
+		StatusKey("esc") + " back",
+		StatusKey("j/k") + " scroll",
 	}
 	if isMemory {
-		hints = append(hints, StatusKeyStyle.Render("d")+StatusValueStyle.Render(" deprecate"))
+		hints = append(hints, StatusKey("d")+" deprecate")
 	}
 	scrollInfo := ""
 	if maxScroll > 0 {

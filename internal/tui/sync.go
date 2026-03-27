@@ -541,8 +541,12 @@ func (m *SyncModel) renderHintBar() string {
 	var parts []string
 	for _, h := range hints {
 		parts = append(parts,
-			StatusKeyStyle.Render(h.key)+" "+StatusValueStyle.Render(h.desc),
+			StatusKey(h.key)+" "+h.desc,
 		)
 	}
-	return StatusBarStyle.Width(m.width).Render(strings.Join(parts, "  "))
+	bar := strings.Join(parts, "  ")
+	if m.width > 0 && lipgloss.Width(bar) > m.width-2 {
+		bar = truncateANSI(bar, m.width-2)
+	}
+	return StatusBarStyle.Width(m.width).Render(bar)
 }
