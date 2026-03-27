@@ -25,13 +25,15 @@ Workflow for brainstorming and high-level planning. Creates and iterates masterf
 ### 2. Plan
 - Dispatch **Planner** in **create plan** mode
 - Planner creates a masterfile at `docs/masterfiles/<name>.md` and returns a brief
-- Present the brief to the developer and ask for feedback
+- Dispatch **Reviewer** in **artifact verification** mode — Reviewer cross-checks the masterfile's factual claims against current code and specs
+- Present the brief and the verification report to the developer, then **wait for their feedback**
 
 ### 3. Iterate
 - If the developer has feedback: dispatch **Planner** in **iterate plan** mode with the feedback
 - Planner refines the masterfile (never deletes content, moves resolved questions to Context)
-- Present updated brief, repeat until the developer is satisfied
-- Direction must narrow over time, Open Questions must shrink
+- Dispatch **Reviewer** in **artifact verification** mode again on the updated masterfile
+- Present the updated brief and verification report, then **wait for feedback**
+- Repeat until the developer is satisfied. Direction must narrow over time, Open Questions must shrink
 
 ### 4. Transition to BUILD (only if developer requests)
 - When the developer says "let's do it", "go ahead", "build this":
@@ -40,6 +42,7 @@ Workflow for brainstorming and high-level planning. Creates and iterates masterf
 - Switch to the cx-build workflow from step 3 (decompose) onward
 
 ## Rules
+- Always verify planning artifacts via Reviewer in artifact verification mode before presenting to the developer
 - No implementation during PLAN mode — masterfile only
 - Never decompose without explicit developer approval
 - After decompose, the masterfile is archived and session switches to BUILD

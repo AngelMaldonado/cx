@@ -100,12 +100,12 @@ type statusBar struct {
 }
 
 func (s statusBar) render() string {
-	left := StatusBarStyle.Render(s.left)
-	right := s.right
+	// Build inner content with inline color overrides (no background —
+	// the outer StatusBarStyle provides the full-width background).
+	left := " " + s.left
+	right := s.right + " "
 	if s.isStale {
-		right = StatusStaleStyle.Render("stale  ") + StatusBarStyle.Render(right)
-	} else {
-		right = StatusBarStyle.Render(right)
+		right = StatusStale("stale  ") + right
 	}
 
 	lw := lipgloss.Width(left)
@@ -128,7 +128,9 @@ func (s statusBar) render() string {
 	if pad < 0 {
 		pad = 0
 	}
-	return left + center + strings.Repeat(" ", pad) + right
+
+	inner := left + center + strings.Repeat(" ", pad) + right
+	return StatusBarStyle.Width(s.width).Render(inner)
 }
 
 // AppModel is the root Bubble Tea model.
@@ -180,7 +182,6 @@ func NewApp(loader *data.Loader) AppModel {
 	views[TabCrossProject] = NewCrossProjectModel(loader)
 
 	s := spinner.New(spinner.WithSpinner(spinner.MiniDot))
-	s.Style = SubtitleStyle
 
 	m := AppModel{
 		loader:     loader,
@@ -567,19 +568,20 @@ func (m *AppModel) refreshStatusBar() {
 		}
 	}
 
-	// Key hints
+	// Key hints — raw ANSI foreground only; outer StatusBarStyle provides background.
 	hints := []string{
-		StatusKeyStyle.Render("tab") + StatusValueStyle.Render(" next"),
-		StatusKeyStyle.Render("1-8") + StatusValueStyle.Render(" jump"),
-		StatusKeyStyle.Render("?") + StatusValueStyle.Render(" help"),
-		StatusKeyStyle.Render("q") + StatusValueStyle.Render(" quit"),
+		StatusKey("tab") + " next",
+		StatusKey("1-8") + " jump",
+		StatusKey("?") + " help",
+		StatusKey("q") + " quit",
 	}
-	m.bar.hints = StatusBarStyle.Render("  ") + strings.Join(hints, StatusBarStyle.Render("  "))
+	m.bar.hints = "   " + strings.Join(hints, "   ")
 
 	if m.spinActive {
-		m.bar.right = m.spin.View() + " loading"
+		// Use raw ANSI for spinner to avoid lipgloss reset breaking status bar background.
+		m.bar.right = StatusKey(m.spin.View()) + " loading"
 	} else if m.err != nil {
-		m.bar.right = StatusErrorStyle.Render("refresh failed")
+		m.bar.right = StatusError("refresh failed")
 	} else if !m.lastRefresh.IsZero() {
 		elapsed := time.Since(m.lastRefresh).Round(time.Second)
 		m.bar.right = fmt.Sprintf("refreshed %s ago", elapsed)

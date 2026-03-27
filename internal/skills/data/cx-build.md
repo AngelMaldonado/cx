@@ -31,8 +31,9 @@ Full workflow for building something new. Covers requirements gathering, plannin
 
 - Dispatch **Planner** in **create plan** mode with all gathered requirements
 - Planner creates a masterfile at `docs/masterfiles/<name>.md` and returns a brief
-- Present the brief to the developer and ask for approval
-- If changes needed: dispatch **Planner** in **iterate plan** mode with feedback, repeat until approved
+- Dispatch **Reviewer** in **artifact verification** mode to cross-check the masterfile against current code and specs
+- Present the brief and verification report to the developer and ask for approval
+- If changes needed: dispatch **Planner** in **iterate plan** mode with feedback, re-verify, repeat until approved
 
 ### 4. Decompose (MANDATORY — you must do this yourself)
 
@@ -46,13 +47,15 @@ This scaffolds `docs/changes/<name>/` with empty templates and archives the mast
 
 After running `cx decompose`:
 - Dispatch **Planner** in **decompose** mode with the change name and archived masterfile path — it fills in proposal.md and design.md
+- Dispatch **Reviewer** in **artifact verification** mode on proposal.md and design.md — verify claims match current code and specs
 - Verify via `cx change status` that proposal and design are filled
 
 ### 5. Design task breakdown
 
 - Dispatch **Planner** in **task design** mode — it reads the change docs (proposal.md, design.md), analyzes the work, and produces a task breakdown in tasks.md
 - The task breakdown assigns work to specific executor agents based on the project's tech stack
-- Present the task breakdown to the developer and ask for approval
+- Dispatch **Reviewer** in **artifact verification** mode on tasks.md — verify file paths, function references, and scope assumptions match the codebase
+- Present the task breakdown and verification report to the developer and ask for approval
 
 ### 6. Implement (orchestrate the full task list)
 

@@ -589,6 +589,11 @@ func (m *CrossProjectModel) renderHeader() string {
 	projectW := 14
 	typeW := 14
 	rankW := 6
+	if innerW < 42 {
+		projectW = max(innerW/4, 4)
+		typeW = max(innerW/4, 4)
+		rankW = max(innerW/8, 3)
+	}
 	titleW := innerW - projectW - typeW - rankW - 3 // 3 for separating spaces
 	if titleW < 5 {
 		titleW = 5
@@ -632,7 +637,7 @@ func (m *CrossProjectModel) renderList() string {
 		for i := 1; i < listH; i++ {
 			sb.WriteString("\n")
 		}
-		return PaneStyle.Width(m.listWidth).Height(listH + 1).Render(sb.String())
+		return PaneStyle.BorderTop(false).Width(innerW).Height(listH + 1).Render(sb.String())
 	}
 
 	if m.searching {
@@ -640,7 +645,7 @@ func (m *CrossProjectModel) renderList() string {
 		for i := 1; i < listH; i++ {
 			sb.WriteString("\n")
 		}
-		return PaneStyle.Width(m.listWidth).Height(listH + 1).Render(sb.String())
+		return PaneStyle.BorderTop(false).Width(innerW).Height(listH + 1).Render(sb.String())
 	}
 
 	if len(m.results) == 0 {
@@ -649,7 +654,7 @@ func (m *CrossProjectModel) renderList() string {
 		for i := 1; i < listH; i++ {
 			sb.WriteString("\n")
 		}
-		return PaneStyle.Width(m.listWidth).Height(listH + 1).Render(sb.String())
+		return PaneStyle.BorderTop(false).Width(innerW).Height(listH + 1).Render(sb.String())
 	}
 
 	end := m.offset + listH
@@ -669,7 +674,7 @@ func (m *CrossProjectModel) renderList() string {
 		rendered++
 	}
 
-	return PaneStyle.Width(m.listWidth).Height(listH + 1).Render(sb.String())
+	return PaneStyle.BorderTop(false).Width(innerW).Height(listH + 1).Render(sb.String())
 }
 
 // renderResultRow renders a single result row in the list.
@@ -677,6 +682,11 @@ func (m *CrossProjectModel) renderResultRow(r memory.ProjectMemoryResult, select
 	projectW := 14
 	typeW := 14
 	rankW := 6
+	if width < 42 {
+		projectW = max(width/4, 4)
+		typeW = max(width/4, 4)
+		rankW = max(width/8, 3)
+	}
 	titleW := width - projectW - typeW - rankW - 3
 	if titleW < 5 {
 		titleW = 5
@@ -786,7 +796,7 @@ func (m *CrossProjectModel) renderPreview() string {
 	if rightW < 10 {
 		rightW = 10
 	}
-	return PreviewStyle.Width(rightW).Height(ph + 2).Render(sb.String())
+	return PreviewStyle.BorderTop(false).Width(rightW).Height(ph + 2).Render(sb.String())
 }
 
 // renderPreviewFullWidth renders the preview pane occupying the full view width
@@ -850,7 +860,7 @@ func (m *CrossProjectModel) renderPreviewFullWidth() string {
 		}
 	}
 
-	return PreviewStyle.Width(m.width - 2).Height(ph + 1).Render(sb.String())
+	return PreviewStyle.BorderTop(false).Width(m.width - 4).Height(ph + 1).Render(sb.String())
 }
 
 // renderHintBar renders the key hint line at the bottom.
@@ -872,7 +882,7 @@ func (m *CrossProjectModel) renderHintBar() string {
 	var parts []string
 	for _, h := range hints {
 		parts = append(parts,
-			StatusKeyStyle.Render(h.key)+" "+StatusValueStyle.Render(h.desc),
+			StatusKey(h.key)+" "+h.desc,
 		)
 	}
 	bar := strings.Join(parts, "  ")

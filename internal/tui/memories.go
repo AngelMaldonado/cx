@@ -814,7 +814,7 @@ func (m *MemoriesModel) renderList(width int) string {
 		}
 	}
 
-	return PaneStyle.Width(width).Height(m.listHeight() + 1).Render(sb.String())
+	return PaneStyle.BorderTop(false).Width(innerW).Height(m.listHeight() + 1).Render(sb.String())
 }
 
 // renderMemoryRow renders a single row in the memory list.
@@ -929,7 +929,7 @@ func (m *MemoriesModel) renderPreview() string {
 	if rightW < 10 {
 		rightW = 10
 	}
-	return PreviewStyle.Width(rightW).Height(ph + 2).Render(sb.String())
+	return PreviewStyle.BorderTop(false).Width(rightW).Height(ph + 2).Render(sb.String())
 }
 
 // renderListFullWidth renders the list occupying the entire view width
@@ -994,7 +994,7 @@ func (m *MemoriesModel) renderPreviewFullWidth() string {
 		}
 	}
 
-	return PreviewStyle.Width(m.width - 2).Height(ph + 1).Render(sb.String())
+	return PreviewStyle.BorderTop(false).Width(m.width - 4).Height(ph + 1).Render(sb.String())
 }
 
 // renderHintBar renders the key hint line at the bottom.
@@ -1017,7 +1017,7 @@ func (m *MemoriesModel) renderHintBar() string {
 	var parts []string
 	for _, h := range hints {
 		parts = append(parts,
-			StatusKeyStyle.Render(h.key)+" "+StatusValueStyle.Render(h.desc),
+			StatusKey(h.key)+" "+h.desc,
 		)
 	}
 	bar := strings.Join(parts, "  ")

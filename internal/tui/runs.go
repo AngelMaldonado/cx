@@ -329,9 +329,11 @@ func (m *RunsModel) renderListPane(innerW, visibleLines int) string {
 
 	// Column widths within the run rows.
 	// TYPE(14) STATUS(12) DURATION(10) SUMMARY(rest)
+	// Run rows have a 4-char gutter prefix ("    " or "►   "), so deduct it.
 	const typeW, statusW, durationW = 14, 12, 10
+	const gutterW = 4
 	fixedW := typeW + statusW + durationW + 3
-	summaryW := innerW - fixedW
+	summaryW := innerW - fixedW - gutterW
 	if summaryW < 10 {
 		summaryW = 10
 	}
@@ -352,7 +354,7 @@ func (m *RunsModel) renderListPane(innerW, visibleLines int) string {
 	var allRows []string
 	for i, item := range m.items {
 		selected := i == m.cursor
-		row := m.renderItem(item, selected, typeW, statusW, durationW, summaryW)
+		row := m.renderItem(item, selected, innerW, typeW, statusW, durationW, summaryW)
 		allRows = append(allRows, row)
 	}
 
@@ -376,16 +378,16 @@ func (m *RunsModel) renderListPane(innerW, visibleLines int) string {
 }
 
 // renderItem renders a single item (header or run row) in the list.
-func (m *RunsModel) renderItem(item runsItem, selected bool, typeW, statusW, durationW, summaryW int) string {
+func (m *RunsModel) renderItem(item runsItem, selected bool, innerW, typeW, statusW, durationW, summaryW int) string {
 	if item.isHeader {
-		return m.renderSessionHeader(item.sessionID, selected)
+		return m.renderSessionHeader(item.sessionID, selected, innerW)
 	}
 	return m.renderRunRow(item.sessionID, item.runIndex, selected, typeW, statusW, durationW, summaryW)
 }
 
 // renderSessionHeader renders a collapsible session group header.
 // A gutter ► indicator is prepended when selected, two spaces otherwise.
-func (m *RunsModel) renderSessionHeader(sessionID string, selected bool) string {
+func (m *RunsModel) renderSessionHeader(sessionID string, selected bool, innerW int) string {
 	expanded := m.expandedGroups[sessionID]
 	chevron := "▶"
 	if expanded {
@@ -395,6 +397,13 @@ func (m *RunsModel) renderSessionHeader(sessionID string, selected bool) string 
 	label := m.sessionLabel(sessionID)
 	runs := m.groupedRuns[sessionID]
 	count := fmt.Sprintf("(%d)", len(runs))
+
+	// Truncate label to prevent overflow. Reserve ~15 chars for prefix and count.
+	maxLabelW := innerW - 15
+	if maxLabelW < 5 {
+		maxLabelW = 5
+	}
+	label = truncate(label, maxLabelW)
 
 	// Use a plain text format for the selected style to avoid ANSI conflicts.
 	text := fmt.Sprintf("%s Session: %s %s",
